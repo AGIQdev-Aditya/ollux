@@ -9,6 +9,9 @@ import base64
 from typing import Dict, Any, Optional
 
 
+MAX_FILE_SIZE = 15 * 1024 * 1024  # 15MB safety limit to protect RAM budget
+
+
 def process_file(filepath: str) -> Optional[Dict[str, Any]]:
     """Parse a file by path and return structured attachment data."""
     if not os.path.exists(filepath):
@@ -18,6 +21,13 @@ def process_file(filepath: str) -> Optional[Dict[str, Any]]:
     ext = os.path.splitext(filename)[1].lower()
     size_bytes = os.path.getsize(filepath)
     size_str = f"{size_bytes / 1024:.1f} KB" if size_bytes < 1024 * 1024 else f"{size_bytes / (1024*1024):.1f} MB"
+
+    if size_bytes > MAX_FILE_SIZE:
+        return {
+            "name": filename,
+            "type": "error",
+            "error": f"File exceeds maximum allowed size (15MB): {size_str}"
+        }
 
     # 1. Images (JPEG, PNG, WEBP)
     if ext in [".png", ".jpg", ".jpeg", ".webp"]:

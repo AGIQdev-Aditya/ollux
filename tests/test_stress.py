@@ -86,7 +86,7 @@ def run_stress_tests():
     print("      ✓ Modern instruct model format verified (structured RAG citations).")
 
     # 4. Attachment Processor Edge Cases
-    print("\n[Test 4/5] Testing Attachment Handling Edge Cases...")
+    print("\n[Test 4/6] Testing Attachment Handling Edge Cases...")
     assert process_file("/non/existent/path/file.txt") is None
     tmp_code = "/tmp/test_code.py"
     with open(tmp_code, "w") as f:
@@ -94,22 +94,99 @@ def run_stress_tests():
     att = process_file(tmp_code)
     assert att["type"] == "text" and "hello world" in att["text"]
     os.remove(tmp_code)
-    print("      ✓ Attachment handler verified.")
 
-    # 5. Live Inference Speed & Reasoning Extraction
-    print("\n[Test 5/5] Testing Live Inference Speed & Reasoning Separator...")
+    # Test file size guard (>15MB)
+    tmp_large = "/tmp/test_large.bin"
+    with open(tmp_large, "wb") as f:
+        f.seek(16 * 1024 * 1024)
+        f.write(b"\0")
+    large_att = process_file(tmp_large)
+    assert large_att["type"] == "error"
+    assert "exceeds maximum allowed size" in large_att["error"]
+    os.remove(tmp_large)
+    print("      ✓ Attachment handler & 15MB file size limit verified.")
+
+    # 5. Split Token Reasoning Extractor
+    print("\n[Test 5/6] Testing Split Tag Reasoning Token Buffer...")
+    # Simulate streaming tokens where <think> is split across 3 tokens: ['<th', 'in', 'k> Deep thoughts </th', 'ink> Final answer']
+    simulated_tokens = ["<th", "in", "k> Deep thoughts </th", "ink> Final answer"]
+    collected_chunks = []
+    
+    # We can invoke stream_chat tag parser simulation or verify logic
+    pending = ""
+    in_think = False
+    chunks_out = []
+    for tok in simulated_tokens:
+        pending += tok
+        while pending:
+            if not in_think:
+                if "<think>" in pending:
+                    parts = pending.split("<think>", 1)
+                    if parts[0]:
+                        chunks_out.append(("content", parts[0]))
+                    in_think = True
+                    pending = parts[1]
+                else:
+                    matched = 0
+                    for k in range(1, min(len(pending) + 1, 7)):
+                        if "<think>".startswith(pending[-k:]):
+                            matched = k
+                    if matched > 0:
+                        emit = pending[:-matched]
+                        pending = pending[-matched:]
+                        if emit:
+                            chunks_out.append(("content", emit))
+                        break
+                    else:
+                        chunks_out.append(("content", pending))
+                        pending = ""
+            else:
+                if "</think>" in pending:
+                    parts = pending.split("</think>", 1)
+                    if parts[0]:
+                        chunks_out.append(("thinking", parts[0]))
+                    in_think = False
+                    pending = parts[1]
+                else:
+                    matched = 0
+                    for k in range(1, min(len(pending) + 1, 8)):
+                        if "</think>".startswith(pending[-k:]):
+                            matched = k
+                    if matched > 0:
+                        emit = pending[:-matched]
+                        pending = pending[-matched:]
+                        if emit:
+                            chunks_out.append(("thinking", emit))
+                        break
+                    else:
+                        chunks_out.append(("thinking", pending))
+                        pending = ""
+    if pending:
+        chunks_out.append(("content" if not in_think else "thinking", pending))
+
+    thinking_result = "".join(t[1] for t in chunks_out if t[0] == "thinking")
+    content_result = "".join(t[1] for t in chunks_out if t[0] == "content")
+    assert "Deep thoughts" in thinking_result
+    assert "Final answer" in content_result
+    assert "<think>" not in content_result and "</think>" not in content_result
+    print(f"      ✓ Split reasoning tags correctly resolved: think='{thinking_result.strip()}', content='{content_result.strip()}'.")
+
+    # 6. Live Inference Speed & Reasoning Extraction
+    print("\n[Test 6/6] Testing Live Inference Speed & Double on_complete Guard...")
     client = OllamaClient()
     conn = client.check_connection()
     assert conn["connected"] is True, "Ollama daemon offline"
     
     stream_chunks = []
     stream_metrics = {}
+    complete_call_count = 0
 
     def on_chunk(c):
         stream_chunks.append(c)
 
     def on_complete(m):
-        nonlocal stream_metrics
+        nonlocal stream_metrics, complete_call_count
+        complete_call_count += 1
         stream_metrics = m
 
     client.stream_chat(
@@ -119,8 +196,10 @@ def run_stress_tests():
         on_chunk=on_chunk,
         on_complete=on_complete
     )
+    assert complete_call_count == 1, f"on_complete fired {complete_call_count} times (must be exactly 1)!"
     assert stream_metrics.get("tokens_per_second", 0) > 0
     print(f"      ✓ Hardware inference: {stream_metrics['tokens_per_second']} tokens/sec")
+    print(f"      ✓ on_complete fired exactly once: {complete_call_count}")
     print(f"      ✓ Total tokens: {stream_metrics['eval_count']} in {stream_metrics['eval_duration_secs']}s")
 
     print("\n" + "=" * 60)

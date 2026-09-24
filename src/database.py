@@ -8,7 +8,7 @@ import os
 import json
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 
 
@@ -82,7 +82,7 @@ class Database:
 
     def create_session(self, title: str = "New Chat", model: str = "llama2-uncensored:7b", thinking_level: str = "med") -> str:
         session_id = str(uuid.uuid4())
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -120,7 +120,7 @@ class Database:
             params.append(thinking_level)
         
         updates.append("updated_at = ?")
-        params.append(datetime.utcnow().isoformat())
+        params.append(datetime.now(timezone.utc).isoformat())
         params.append(session_id)
 
         with self._get_connection() as conn:
@@ -146,7 +146,7 @@ class Database:
         metrics: Optional[Dict[str, Any]] = None
     ) -> str:
         msg_id = str(uuid.uuid4())
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         att_json = json.dumps(attachments or [])
         met_json = json.dumps(metrics or {})
         

@@ -7,6 +7,7 @@ Handles asynchronous streaming, threading, file dialogs, and SQLite persistence.
 import os
 import json
 import threading
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 import webview
 
@@ -93,6 +94,56 @@ class OlluxAPI:
 
     def delete_session(self, session_id: str) -> bool:
         return self.db.delete_session(session_id)
+
+    def export_session_markdown(self, session_id: str) -> Dict[str, Any]:
+        """Export session history as a beautifully formatted Markdown file."""
+        if not self.window:
+            return {"success": False, "error": "No active window"}
+        session = self.db.get_session(session_id)
+        if not session:
+            return {"success": False, "error": "Session not found"}
+
+        messages = self.db.get_messages(session_id)
+        title = session.get("title", "Conversation")
+        clean_title = "".join(c for c in title if c.isalnum() or c in " _-").strip() or "conversation"
+
+        filepath = self.window.create_file_dialog(
+            webview.SAVE_DIALOG,
+            save_filename=f"{clean_title}.md",
+            file_types=('Markdown (*.md)', 'All files (*.*)')
+        )
+        if not filepath:
+            return {"success": False, "canceled": True}
+
+        if isinstance(filepath, (list, tuple)):
+            filepath = filepath[0]
+
+        lines = [
+            f"# {title}",
+            f"- **Model**: {session.get('model', 'Unknown')}",
+            f"- **Exported**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}",
+            "",
+            "---",
+            ""
+        ]
+
+        for msg in messages:
+            role_name = "🧑 User" if msg["role"] == "user" else "🦙 Assistant"
+            lines.append(f"### {role_name}\n")
+            if msg.get("thinking_content"):
+                lines.append(f"> **Thinking Process**:\n> " + msg['thinking_content'].strip().replace("\n", "\n> ") + "\n")
+            lines.append(msg["content"] + "\n")
+            if msg.get("metrics") and msg["metrics"].get("eval_count"):
+                m = msg["metrics"]
+                lines.append(f"*⚡ {m.get('tokens_per_second', 0)} tok/s | {m.get('eval_count', 0)} tokens | {m.get('eval_duration_secs', 0)}s*\n")
+            lines.append("---\n")
+
+        try:
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write("\n".join(lines))
+            return {"success": True, "path": filepath}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     def get_setting(self, key: str, default: Any = None):
         return self.db.get_setting(key, default)

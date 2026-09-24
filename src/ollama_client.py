@@ -126,8 +126,10 @@ class OllamaClient:
             in_thinking_block = False
             thinking_buffer = ""
             content_buffer = ""
+            pending_tag_buffer = ""
             first_token_time = None
             stopped_early = False
+            completed = False
 
             for line in r.iter_lines():
                 if stop_event and stop_event.is_set():
@@ -155,40 +157,81 @@ class OllamaClient:
                     if on_chunk:
                         on_chunk({"type": "thinking", "token": native_thinking})
 
-                # 2. Tag-based thinking (<think>...</think>) inside content
+                # 2. Tag-based thinking (<think>...</think>) inside content (handles split tokens)
                 if content_token:
-                    if "<think>" in content_token:
-                        in_thinking_block = True
-                        parts = content_token.split("<think>", 1)
-                        if parts[0] and on_chunk:
-                            content_buffer += parts[0]
-                            on_chunk({"type": "content", "token": parts[0]})
-                        content_token = parts[1]
-
-                    if "</think>" in content_token:
-                        parts = content_token.split("</think>", 1)
-                        thinking_part = parts[0]
-                        rest = parts[1]
-                        thinking_buffer += thinking_part
-                        if on_chunk:
-                            on_chunk({"type": "thinking", "token": thinking_part})
-                        in_thinking_block = False
-                        if rest and on_chunk:
-                            content_buffer += rest
-                            on_chunk({"type": "content", "token": rest})
-                        continue
-
-                    if in_thinking_block:
-                        thinking_buffer += content_token
-                        if on_chunk:
-                            on_chunk({"type": "thinking", "token": content_token})
-                    else:
-                        content_buffer += content_token
-                        if on_chunk:
-                            on_chunk({"type": "content", "token": content_token})
+                    pending_tag_buffer += content_token
+                    while pending_tag_buffer:
+                        if not in_thinking_block:
+                            if "<think>" in pending_tag_buffer:
+                                parts = pending_tag_buffer.split("<think>", 1)
+                                if parts[0]:
+                                    content_buffer += parts[0]
+                                    if on_chunk:
+                                        on_chunk({"type": "content", "token": parts[0]})
+                                in_thinking_block = True
+                                pending_tag_buffer = parts[1]
+                            else:
+                                matched_len = 0
+                                for k in range(1, min(len(pending_tag_buffer) + 1, 7)):
+                                    if "<think>".startswith(pending_tag_buffer[-k:]):
+                                        matched_len = k
+                                if matched_len > 0:
+                                    emit_part = pending_tag_buffer[:-matched_len]
+                                    pending_tag_buffer = pending_tag_buffer[-matched_len:]
+                                    if emit_part:
+                                        content_buffer += emit_part
+                                        if on_chunk:
+                                            on_chunk({"type": "content", "token": emit_part})
+                                    break
+                                else:
+                                    content_buffer += pending_tag_buffer
+                                    if on_chunk:
+                                        on_chunk({"type": "content", "token": pending_tag_buffer})
+                                    pending_tag_buffer = ""
+                        else:
+                            if "</think>" in pending_tag_buffer:
+                                parts = pending_tag_buffer.split("</think>", 1)
+                                if parts[0]:
+                                    thinking_buffer += parts[0]
+                                    if on_chunk:
+                                        on_chunk({"type": "thinking", "token": parts[0]})
+                                in_thinking_block = False
+                                pending_tag_buffer = parts[1]
+                            else:
+                                matched_len = 0
+                                for k in range(1, min(len(pending_tag_buffer) + 1, 8)):
+                                    if "</think>".startswith(pending_tag_buffer[-k:]):
+                                        matched_len = k
+                                if matched_len > 0:
+                                    emit_part = pending_tag_buffer[:-matched_len]
+                                    pending_tag_buffer = pending_tag_buffer[-matched_len:]
+                                    if emit_part:
+                                        thinking_buffer += emit_part
+                                        if on_chunk:
+                                            on_chunk({"type": "thinking", "token": emit_part})
+                                    break
+                                else:
+                                    thinking_buffer += pending_tag_buffer
+                                    if on_chunk:
+                                        on_chunk({"type": "thinking", "token": pending_tag_buffer})
+                                    pending_tag_buffer = ""
 
                 # Stream termination & performance metrics
                 if chunk.get("done"):
+                    completed = True
+
+                    # Flush any lingering text from pending_tag_buffer
+                    if pending_tag_buffer:
+                        if in_thinking_block:
+                            thinking_buffer += pending_tag_buffer
+                            if on_chunk:
+                                on_chunk({"type": "thinking", "token": pending_tag_buffer})
+                        else:
+                            content_buffer += pending_tag_buffer
+                            if on_chunk:
+                                on_chunk({"type": "content", "token": pending_tag_buffer})
+                        pending_tag_buffer = ""
+
                     eval_count = chunk.get("eval_count", 0)
                     eval_duration_ns = chunk.get("eval_duration", 0)
                     prompt_eval_count = chunk.get("prompt_eval_count", 0)
@@ -218,7 +261,16 @@ class OllamaClient:
                         on_complete(metrics)
                     break
 
-            if stopped_early and on_complete:
+            # If stopped early before 'done' arrived, finalize cleanly exactly once
+            if stopped_early and not completed and on_complete:
+                completed = True
+                if pending_tag_buffer:
+                    if in_thinking_block:
+                        thinking_buffer += pending_tag_buffer
+                    else:
+                        content_buffer += pending_tag_buffer
+                    pending_tag_buffer = ""
+
                 elapsed = time.time() - start_wall_time
                 metrics = {
                     "eval_count": len(content_buffer.split()),

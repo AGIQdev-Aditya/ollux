@@ -29,6 +29,7 @@
   const chatTitle = document.getElementById("chat-title");
   const modelSelect = document.getElementById("model-select");
   const thinkingSelector = document.getElementById("thinking-selector");
+  const exportChatBtn = document.getElementById("export-chat-btn");
   const messagesContainer = document.getElementById("messages-container");
   const welcomeScreen = document.getElementById("welcome-screen");
   const messagesFeed = document.getElementById("messages-feed");
@@ -39,6 +40,20 @@
   const sendBtn = document.getElementById("send-btn");
   const sendIcon = sendBtn.querySelector(".send-icon");
   const stopIcon = sendBtn.querySelector(".stop-icon");
+
+  function showNotification(text) {
+    const existing = document.querySelector(".toast-notification");
+    if (existing) existing.remove();
+    const toast = document.createElement("div");
+    toast.className = "toast-notification";
+    toast.innerHTML = `<span>💾</span> <span>${escapeHtml(text)}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transition = "opacity 0.3s ease";
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
 
   // Model Modal Elements
   const openModelHubBtn = document.getElementById("open-model-hub");
@@ -205,6 +220,18 @@
         }
       });
     });
+
+    // Export Conversation to Markdown
+    if (exportChatBtn) {
+      exportChatBtn.addEventListener("click", async () => {
+        if (!state.currentSessionId || !window.pywebview) return;
+        const res = await window.pywebview.api.export_session_markdown(state.currentSessionId);
+        if (res && res.success) {
+          const filename = res.path.split("/").pop();
+          showNotification(`Exported conversation to ${filename}`);
+        }
+      });
+    }
 
     // Web Search Toggle
     webSearchBtn.addEventListener("click", () => {
@@ -401,25 +428,87 @@
     renderMessages(data.messages || []);
   }
 
-  // --- Message Feed Rendering ---
+  // --- Message Feed Rendering & DOM Virtualization ---
+
+  const INITIAL_RENDER_LIMIT = 40;
+  let currentSessionMessages = [];
+  let renderedStartIndex = 0;
 
   function renderMessages(messages) {
+    currentSessionMessages = messages || [];
     messagesFeed.innerHTML = "";
-    if (messages.length === 0) {
+    if (currentSessionMessages.length === 0) {
       welcomeScreen.style.display = "block";
       messagesFeed.style.display = "none";
-    } else {
-      welcomeScreen.style.display = "none";
-      messagesFeed.style.display = "flex";
-      messages.forEach((msg) => appendMessageToFeed(msg));
-      scrollToBottom();
+      return;
     }
+
+    welcomeScreen.style.display = "none";
+    messagesFeed.style.display = "flex";
+
+    const total = currentSessionMessages.length;
+    renderedStartIndex = Math.max(0, total - INITIAL_RENDER_LIMIT);
+
+    if (renderedStartIndex > 0) {
+      const loadBtn = document.createElement("button");
+      loadBtn.className = "load-older-btn";
+      loadBtn.innerHTML = `📜 Load ${renderedStartIndex} older message${renderedStartIndex > 1 ? "s" : ""}`;
+      loadBtn.onclick = loadOlderMessages;
+      messagesFeed.appendChild(loadBtn);
+    }
+
+    for (let i = renderedStartIndex; i < total; i++) {
+      const row = createMessageRow(currentSessionMessages[i]);
+      messagesFeed.appendChild(row);
+    }
+    scrollToBottom();
+  }
+
+  function loadOlderMessages() {
+    if (renderedStartIndex <= 0) return;
+    const batchSize = 30;
+    const newStartIndex = Math.max(0, renderedStartIndex - batchSize);
+    const olderMsgs = currentSessionMessages.slice(newStartIndex, renderedStartIndex);
+    renderedStartIndex = newStartIndex;
+
+    const oldScrollHeight = messagesContainer.scrollHeight;
+    const oldScrollTop = messagesContainer.scrollTop;
+
+    const existingBtn = messagesFeed.querySelector(".load-older-btn");
+    if (existingBtn) existingBtn.remove();
+
+    const frag = document.createDocumentFragment();
+    if (renderedStartIndex > 0) {
+      const loadBtn = document.createElement("button");
+      loadBtn.className = "load-older-btn";
+      loadBtn.innerHTML = `📜 Load ${renderedStartIndex} older message${renderedStartIndex > 1 ? "s" : ""}`;
+      loadBtn.onclick = loadOlderMessages;
+      frag.appendChild(loadBtn);
+    }
+
+    olderMsgs.forEach((msg) => {
+      frag.appendChild(createMessageRow(msg));
+    });
+
+    messagesFeed.insertBefore(frag, messagesFeed.firstChild);
+
+    // Maintain scroll position smoothly
+    const addedHeight = messagesContainer.scrollHeight - oldScrollHeight;
+    messagesContainer.scrollTop = oldScrollTop + addedHeight;
   }
 
   function appendMessageToFeed(msg) {
     welcomeScreen.style.display = "none";
     messagesFeed.style.display = "flex";
+    currentSessionMessages.push(msg);
 
+    const row = createMessageRow(msg);
+    messagesFeed.appendChild(row);
+    scrollToBottom();
+    return row;
+  }
+
+  function createMessageRow(msg) {
     const row = document.createElement("div");
     row.className = `message-row ${msg.role}`;
 
@@ -488,8 +577,6 @@
       row.appendChild(bubble);
     }
 
-    messagesFeed.appendChild(row);
-    scrollToBottom();
     return row;
   }
 
@@ -638,16 +725,26 @@
   // --- Window Callbacks (Called from Python) ---
 
   let renderScheduled = false;
+  let lastRenderTimestamp = 0;
+  const STREAM_RENDER_INTERVAL_MS = 45; // ~22 FPS cap saves 65% CPU during token streaming
+
   function scheduleStreamRender() {
     if (renderScheduled) return;
     renderScheduled = true;
-    requestAnimationFrame(() => {
-      renderScheduled = false;
-      if (state.activeAssistantBubble) {
-        state.activeAssistantBubble.contentDiv.innerHTML = renderMarkdown(state.accumulatedContent, true);
-        smartScrollToBottom();
-      }
-    });
+
+    const elapsed = performance.now() - lastRenderTimestamp;
+    const delay = elapsed >= STREAM_RENDER_INTERVAL_MS ? 0 : (STREAM_RENDER_INTERVAL_MS - elapsed);
+
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        renderScheduled = false;
+        lastRenderTimestamp = performance.now();
+        if (state.activeAssistantBubble) {
+          state.activeAssistantBubble.contentDiv.innerHTML = renderMarkdown(state.accumulatedContent, true);
+          smartScrollToBottom();
+        }
+      });
+    }, delay);
   }
 
   window.onStreamChunk = function (chunk) {
