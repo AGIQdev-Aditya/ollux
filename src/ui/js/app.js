@@ -352,6 +352,9 @@
       if (msg.thinking_content) {
         const drawer = document.createElement("details");
         drawer.className = "thought-drawer";
+        if (!msg.content || !msg.content.trim()) {
+          drawer.open = true;
+        }
         drawer.innerHTML = `
           <summary class="thought-summary">🧠 Reasoning Process</summary>
           <div class="thought-content">${escapeHtml(msg.thinking_content)}</div>
@@ -535,6 +538,7 @@
     if (chunk.type === "thinking") {
       state.accumulatedThinking += chunk.token;
       state.activeAssistantBubble.drawer.style.display = "block";
+      state.activeAssistantBubble.drawer.open = true;
       state.activeAssistantBubble.thoughtContent.textContent = state.accumulatedThinking;
     } else if (chunk.type === "content") {
       state.accumulatedContent += chunk.token;
@@ -553,7 +557,11 @@
     if (state.accumulatedThinking) {
       const elapsed = ((Date.now() - state.thoughtStartTime) / 1000).toFixed(1);
       state.activeAssistantBubble.drawer.querySelector(".thought-summary").textContent = `🧠 Reasoned for ${elapsed}s (click to expand)`;
-      state.activeAssistantBubble.drawer.open = false; // Collapse when complete for clean reading
+      if (state.accumulatedContent && state.accumulatedContent.trim()) {
+        state.activeAssistantBubble.drawer.open = false;
+      } else {
+        state.activeAssistantBubble.drawer.open = true;
+      }
     }
 
     // Append performance metrics

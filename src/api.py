@@ -13,7 +13,7 @@ import webview
 from src.ollama_client import OllamaClient
 from src.database import Database
 from src.attachment_handler import process_file
-from src.web_search import perform_web_search, format_search_context
+from src.web_search import perform_web_search, format_search_context, should_skip_web_search, clean_search_query
 
 
 class OlluxAPI:
@@ -158,17 +158,19 @@ class OlluxAPI:
 
             # Privacy Web Search (DuckDuckGo)
             if web_search:
-                if self.window:
-                    self.window.evaluate_js("window.onSearchStatus('Searching DuckDuckGo...')")
-                try:
-                    search_sources = perform_web_search(content, max_results=3)
-                    if search_sources:
-                        search_context_prompt = format_search_context(content, search_sources)
-                        if self.window:
-                            sources_json = json.dumps(search_sources)
-                            self.window.evaluate_js(f"window.onWebSearchResults({sources_json})")
-                except Exception as e:
-                    print("Search error:", e)
+                if not should_skip_web_search(content):
+                    cleaned_q = clean_search_query(content)
+                    if self.window:
+                        self.window.evaluate_js(f"window.onSearchStatus({json.dumps(f'Searching web for: \"{cleaned_q}\"...')})")
+                    try:
+                        search_sources = perform_web_search(content, max_results=5)
+                        if search_sources:
+                            search_context_prompt = format_search_context(content, search_sources)
+                            if self.window:
+                                sources_json = json.dumps(search_sources)
+                                self.window.evaluate_js(f"window.onWebSearchResults({sources_json})")
+                    except Exception as e:
+                        print("Search error:", e)
 
             # Build messages history for Ollama
             history_rows = self.db.get_messages(session_id)

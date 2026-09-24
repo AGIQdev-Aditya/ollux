@@ -1,13 +1,13 @@
 """
 ollux — Native Ollama Client Engine
 Handles communication with the local Ollama API (localhost:11434).
-Streaming, reasoning separation, model lifecycle, and live inference benchmarking.
+Streaming, reasoning separation (native + tag based), model lifecycle, and live inference benchmarking.
 """
 
 import json
 import time
 import requests
-from typing import Dict, Any, Generator, Optional, Callable
+from typing import Dict, Any, Optional, Callable
 
 
 class OllamaClient:
@@ -74,7 +74,7 @@ class OllamaClient:
             return False
 
     def delete_model(self, model_name: str) -> Dict[str, Any]:
-        """Delete an existing model."""
+        """Delete an installed model."""
         try:
             r = requests.delete(
                 f"{self.host}/api/delete",
@@ -96,15 +96,15 @@ class OllamaClient:
     ):
         """
         Stream a chat response from Ollama.
-        Dynamically filters <think>...</think> reasoning tokens from output.
+        Supports both native Ollama v0.33+ 'thinking' field and legacy <think>...</think> tags.
         Calculates real-time tokens/sec performance metrics on completion.
         """
         # Map thinking level to sampling parameters
         params = {
-            "low": {"temperature": 0.2, "top_p": 0.5},
-            "med": {"temperature": 0.6, "top_p": 0.8},
-            "high": {"temperature": 0.85, "top_p": 0.95}
-        }.get(thinking_level.lower(), {"temperature": 0.6, "top_p": 0.8})
+            "low": {"temperature": 0.2, "top_p": 0.5, "num_predict": 1024},
+            "med": {"temperature": 0.6, "top_p": 0.8, "num_predict": 2048},
+            "high": {"temperature": 0.85, "top_p": 0.95, "num_predict": 4096}
+        }.get(thinking_level.lower(), {"temperature": 0.6, "top_p": 0.8, "num_predict": 2048})
 
         payload = {
             "model": model,
@@ -136,38 +136,46 @@ class OllamaClient:
                     first_token_time = time.time()
 
                 msg = chunk.get("message", {})
-                token = msg.get("content", "")
+                native_thinking = msg.get("thinking", "")
+                content_token = msg.get("content", "")
 
-                # Handle reasoning / thinking tag splitting
-                if "<think>" in token:
-                    in_thinking_block = True
-                    parts = token.split("<think>", 1)
-                    if parts[0] and on_chunk:
-                        content_buffer += parts[0]
-                        on_chunk({"type": "content", "token": parts[0]})
-                    token = parts[1]
+                # 1. Native Ollama v0.33+ thinking tokens
+                if native_thinking:
+                    thinking_buffer += native_thinking
+                    if on_chunk:
+                        on_chunk({"type": "thinking", "token": native_thinking})
 
-                if "</think>" in token:
-                    parts = token.split("</think>", 1)
-                    thinking_part = parts[0]
-                    rest = parts[1]
-                    thinking_buffer += thinking_part
-                    if on_chunk:
-                        on_chunk({"type": "thinking", "token": thinking_part})
-                    in_thinking_block = False
-                    if rest and on_chunk:
-                        content_buffer += rest
-                        on_chunk({"type": "content", "token": rest})
-                    continue
+                # 2. Tag-based thinking (<think>...</think>) inside content
+                if content_token:
+                    if "<think>" in content_token:
+                        in_thinking_block = True
+                        parts = content_token.split("<think>", 1)
+                        if parts[0] and on_chunk:
+                            content_buffer += parts[0]
+                            on_chunk({"type": "content", "token": parts[0]})
+                        content_token = parts[1]
 
-                if in_thinking_block:
-                    thinking_buffer += token
-                    if on_chunk:
-                        on_chunk({"type": "thinking", "token": token})
-                else:
-                    content_buffer += token
-                    if on_chunk:
-                        on_chunk({"type": "content", "token": token})
+                    if "</think>" in content_token:
+                        parts = content_token.split("</think>", 1)
+                        thinking_part = parts[0]
+                        rest = parts[1]
+                        thinking_buffer += thinking_part
+                        if on_chunk:
+                            on_chunk({"type": "thinking", "token": thinking_part})
+                        in_thinking_block = False
+                        if rest and on_chunk:
+                            content_buffer += rest
+                            on_chunk({"type": "content", "token": rest})
+                        continue
+
+                    if in_thinking_block:
+                        thinking_buffer += content_token
+                        if on_chunk:
+                            on_chunk({"type": "thinking", "token": content_token})
+                    else:
+                        content_buffer += content_token
+                        if on_chunk:
+                            on_chunk({"type": "content", "token": content_token})
 
                 # Stream termination & performance metrics
                 if chunk.get("done"):
