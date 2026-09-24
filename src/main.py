@@ -5,6 +5,11 @@ Main entry point and window manager.
 
 import os
 import sys
+
+# Critical stability fix for WebKitWebProcess on Linux hybrid Intel/NVIDIA Wayland systems
+# Disables DMABUF renderer sharing that causes SIGABRT on NVIDIA proprietary drivers
+os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+
 import webview
 
 # Ensure project root is in path

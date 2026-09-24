@@ -29,6 +29,7 @@ package() {
     install -d "$pkgdir/usr/bin"
     cat << 'SH' > "$pkgdir/usr/bin/ollux"
 #!/usr/bin/env bash
+export WEBKIT_DISABLE_DMABUF_RENDERER=1
 exec python3 /usr/share/ollux/src/main.py "$@"
 SH
     chmod 755 "$pkgdir/usr/bin/ollux"
