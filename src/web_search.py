@@ -117,11 +117,23 @@ def perform_web_search(query: str, max_results: int = 5) -> List[Dict[str, str]]
     return results
 
 
-def format_search_context(query: str, results: List[Dict[str, str]]) -> str:
-    """Format search results into a clean, authoritative ground-truth prompt."""
+def format_search_context(query: str, results: List[Dict[str, str]], model_name: str = "") -> str:
+    """Format search results into model-adaptive ground-truth prompt."""
     if not results:
         return ""
 
+    is_legacy_model = any(k in model_name.lower() for k in ["llama2", "alpaca", "vicuna"])
+
+    if is_legacy_model:
+        # Simplified direct fact-injection format for smaller/legacy models
+        lines = ["Information from web search:"]
+        for idx, item in enumerate(results, 1):
+            lines.append(f"- Fact {idx}: {item['title']} - {item['body']}")
+        lines.append(f"\nQuestion: {query}")
+        lines.append("Based strictly on the facts above, here is the direct answer:")
+        return "\n".join(lines)
+
+    # Modern instruct models (Qwen 2.5/3.8, Nemotron, Llama 3+, Mistral)
     context_lines = [
         f'=== REAL-TIME WEB SEARCH RESULTS FOR: "{query}" ===',
         "You are an intelligent assistant answering with live web access.",

@@ -251,7 +251,18 @@
       state.models.forEach((m) => {
         const opt = document.createElement("option");
         opt.value = m.name;
-        opt.textContent = `${m.name} (${m.size})`;
+        let badge = "";
+        const nameLower = m.name.toLowerCase();
+        if (nameLower.includes("qwen3.8") || nameLower.includes("vision")) {
+          badge = " • 👁️ Vision & Web";
+        } else if (nameLower.includes("nemotron") || nameLower.includes("qwen2.5") || nameLower.includes("deepseek")) {
+          badge = " • 🧠 Reasoning & Web";
+        } else if (nameLower.includes("llama2")) {
+          badge = " • ⚡ Fast Local (Legacy)";
+        } else {
+          badge = " • 🌐 Web Ready";
+        }
+        opt.textContent = `${m.name} (${m.size})${badge}`;
         modelSelect.appendChild(opt);
       });
 
@@ -513,6 +524,7 @@
     });
 
     // 2. Prepare Live Assistant Bubble
+    userScrolledUp = false;
     state.isGenerating = true;
     updateSendButtonState(true);
     state.accumulatedContent = "";
@@ -585,8 +597,8 @@
     requestAnimationFrame(() => {
       renderScheduled = false;
       if (state.activeAssistantBubble) {
-        state.activeAssistantBubble.contentDiv.innerHTML = renderMarkdown(state.accumulatedContent) + `<span class="cursor-pulse">▋</span>`;
-        scrollToBottom();
+        state.activeAssistantBubble.contentDiv.innerHTML = renderMarkdown(state.accumulatedContent, true);
+        smartScrollToBottom();
       }
     });
   }
@@ -599,7 +611,7 @@
       state.activeAssistantBubble.drawer.style.display = "block";
       state.activeAssistantBubble.drawer.open = true;
       state.activeAssistantBubble.thoughtContent.textContent = state.accumulatedThinking;
-      scrollToBottom();
+      smartScrollToBottom();
     } else if (chunk.type === "content") {
       state.accumulatedContent += chunk.token;
       scheduleStreamRender();
@@ -609,8 +621,8 @@
   window.onStreamComplete = function (metrics) {
     if (!state.activeAssistantBubble) return;
 
-    // Remove cursor
-    state.activeAssistantBubble.contentDiv.innerHTML = renderMarkdown(state.accumulatedContent);
+    // Remove cursor cleanly
+    state.activeAssistantBubble.contentDiv.innerHTML = renderMarkdown(state.accumulatedContent, false);
 
     // Update thinking summary title with duration
     if (state.accumulatedThinking) {
@@ -640,7 +652,7 @@
     state.isGenerating = false;
     updateSendButtonState(false);
     state.activeAssistantBubble = null;
-    scrollToBottom();
+    smartScrollToBottom();
   };
 
   window.onStreamError = function (err) {
@@ -732,15 +744,48 @@
     chatTextarea.style.height = Math.min(chatTextarea.scrollHeight, 180) + "px";
   }
 
-  function scrollToBottom() {
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  // Smart auto-scrolling: detects user scrolling up
+  let userScrolledUp = false;
+
+  messagesContainer.addEventListener("scroll", () => {
+    const distanceToBottom = messagesContainer.scrollHeight - (messagesContainer.scrollTop + messagesContainer.clientHeight);
+    userScrolledUp = distanceToBottom > 60;
+  });
+
+  function smartScrollToBottom(force = false) {
+    if (force || !userScrolledUp) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
   }
 
-  function renderMarkdown(text) {
+  function scrollToBottom() {
+    smartScrollToBottom(true);
+  }
+
+  function renderMarkdown(text, showCursor = false) {
+    if (!text && !showCursor) return "";
+    if (!text && showCursor) return `<span class="cursor-pulse">▋</span>`;
+
+    let html = "";
     if (typeof marked !== "undefined") {
-      return marked.parse(text || "");
+      html = marked.parse(text || "");
+    } else {
+      html = escapeHtml(text).replace(/\n/g, "<br>");
     }
-    return escapeHtml(text).replace(/\n/g, "<br>");
+
+    if (showCursor) {
+      const cursorHtml = `<span class="cursor-pulse">▋</span>`;
+      // Insert cursor INSIDE the paragraph or code block right after the last token
+      if (/<\/p>\s*$/.test(html)) {
+        html = html.replace(/<\/p>\s*$/, `${cursorHtml}</p>`);
+      } else if (/<\/code><\/pre>\s*<\/div>\s*$/.test(html)) {
+        html = html.replace(/<\/code>/, `${cursorHtml}</code>`);
+      } else {
+        html += cursorHtml;
+      }
+    }
+
+    return html;
   }
 
   function escapeHtml(str) {

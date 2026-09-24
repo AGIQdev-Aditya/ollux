@@ -165,7 +165,7 @@ class OlluxAPI:
                     try:
                         search_sources = perform_web_search(content, max_results=5)
                         if search_sources:
-                            search_context_prompt = format_search_context(content, search_sources)
+                            search_context_prompt = format_search_context(content, search_sources, model)
                             if self.window:
                                 sources_json = json.dumps(search_sources)
                                 self.window.evaluate_js(f"window.onWebSearchResults({sources_json})")
