@@ -619,44 +619,61 @@ html, body {
   font-weight: 600;
 }
 
-.markdown-body pre {
-  margin: 12px 0;
+.code-wrapper {
+  margin: 14px 0;
   border-radius: 10px;
   overflow: hidden;
   background: #16161e;
   border: 1px solid var(--border-color);
-  position: relative;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
-.code-header {
+.code-wrapper .code-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 12px;
+  padding: 6px 14px;
   background: #1a1b26;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 11px;
-  color: var(--text-muted);
+  font-family: var(--font-mono);
+  color: var(--accent-cyan);
+  text-transform: lowercase;
 }
 
 .code-copy-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 11px;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: 4px;
-  transition: color 0.15s ease, background 0.15s ease;
+  font-family: var(--font-stack);
+  transition: all 0.15s ease;
 }
 
 .code-copy-btn:hover {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
-.markdown-body code {
+.code-wrapper pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  background: transparent !important;
+  border: none !important;
+}
+
+.code-wrapper pre code {
   font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  background: transparent !important;
+  padding: 0 !important;
+  display: block;
 }
 
 .markdown-body p code {
@@ -665,6 +682,21 @@ html, body {
   border-radius: 4px;
   font-size: 12px;
   color: var(--accent-cyan);
+  font-family: var(--font-mono);
+}
+
+.cursor-pulse {
+  display: inline-block;
+  color: var(--accent-cyan);
+  animation: cursorBlink 0.8s infinite;
+  font-weight: 700;
+  margin-left: 2px;
+  vertical-align: baseline;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 /* Performance Metrics Footer */

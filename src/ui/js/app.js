@@ -51,6 +51,52 @@
   const pullStatusLabel = document.getElementById("pull-status-label");
   const installedModelsTbody = document.getElementById("installed-models-tbody");
 
+  // --- Configure Marked with Synchronous Highlight.js & Inline Headers ---
+  if (typeof marked !== "undefined") {
+    const customRenderer = {
+      code(token) {
+        const lang = token.lang || "";
+        let highlighted = token.text;
+        if (typeof hljs !== "undefined") {
+          try {
+            if (lang && hljs.getLanguage(lang)) {
+              highlighted = hljs.highlight(token.text, { language: lang, ignoreIllegals: true }).value;
+            } else {
+              highlighted = hljs.highlightAuto(token.text).value;
+            }
+          } catch (e) {
+            highlighted = escapeHtml(token.text);
+          }
+        } else {
+          highlighted = escapeHtml(token.text);
+        }
+        const displayLang = lang || "code";
+        return `
+          <div class="code-wrapper">
+            <div class="code-header">
+              <span class="code-lang">${displayLang}</span>
+              <button class="code-copy-btn" onclick="window.copyCodeBlock(this)">Copy</button>
+            </div>
+            <pre><code class="hljs ${lang ? 'language-' + lang : ''}">${highlighted}</code></pre>
+          </div>
+        `;
+      }
+    };
+    marked.use({ renderer: customRenderer });
+  }
+
+  // Global Code Copy Function
+  window.copyCodeBlock = function (btn) {
+    const wrapper = btn.closest(".code-wrapper");
+    if (!wrapper) return;
+    const codeEl = wrapper.querySelector("code");
+    if (!codeEl) return;
+    navigator.clipboard.writeText(codeEl.innerText).then(() => {
+      btn.textContent = "Copied!";
+      setTimeout(() => (btn.textContent = "Copy"), 2000);
+    });
+  };
+
   // --- Initialize when PyWebView is ready ---
   window.addEventListener("pywebviewready", initApp);
   // Fallback for direct browser testing
@@ -532,6 +578,19 @@
 
   // --- Window Callbacks (Called from Python) ---
 
+  let renderScheduled = false;
+  function scheduleStreamRender() {
+    if (renderScheduled) return;
+    renderScheduled = true;
+    requestAnimationFrame(() => {
+      renderScheduled = false;
+      if (state.activeAssistantBubble) {
+        state.activeAssistantBubble.contentDiv.innerHTML = renderMarkdown(state.accumulatedContent) + `<span class="cursor-pulse">▋</span>`;
+        scrollToBottom();
+      }
+    });
+  }
+
   window.onStreamChunk = function (chunk) {
     if (!state.activeAssistantBubble) return;
 
@@ -540,11 +599,11 @@
       state.activeAssistantBubble.drawer.style.display = "block";
       state.activeAssistantBubble.drawer.open = true;
       state.activeAssistantBubble.thoughtContent.textContent = state.accumulatedThinking;
+      scrollToBottom();
     } else if (chunk.type === "content") {
       state.accumulatedContent += chunk.token;
-      state.activeAssistantBubble.contentDiv.innerHTML = renderMarkdown(state.accumulatedContent) + `<span class="cursor-pulse">▋</span>`;
+      scheduleStreamRender();
     }
-    scrollToBottom();
   };
 
   window.onStreamComplete = function (metrics) {
@@ -679,39 +738,9 @@
 
   function renderMarkdown(text) {
     if (typeof marked !== "undefined") {
-      const html = marked.parse(text || "");
-      setTimeout(() => {
-        if (typeof hljs !== "undefined") {
-          document.querySelectorAll("pre code").forEach((el) => {
-            if (!el.dataset.highlighted) {
-              hljs.highlightElement(el);
-              el.dataset.highlighted = "true";
-              addCopyButtonToCode(el.parentElement);
-            }
-          });
-        }
-      }, 10);
-      return html;
+      return marked.parse(text || "");
     }
     return escapeHtml(text).replace(/\n/g, "<br>");
-  }
-
-  function addCopyButtonToCode(preEl) {
-    if (preEl.querySelector(".code-header")) return;
-    const header = document.createElement("div");
-    header.className = "code-header";
-    header.innerHTML = `
-      <span>Code</span>
-      <button class="code-copy-btn">Copy</button>
-    `;
-    const btn = header.querySelector(".code-copy-btn");
-    btn.addEventListener("click", () => {
-      const code = preEl.querySelector("code").innerText;
-      navigator.clipboard.writeText(code);
-      btn.textContent = "Copied!";
-      setTimeout(() => (btn.textContent = "Copy"), 2000);
-    });
-    preEl.prepend(header);
   }
 
   function escapeHtml(str) {

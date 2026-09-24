@@ -9,8 +9,15 @@ import sys
 # Critical stability fix for WebKitWebProcess on Linux hybrid Intel/NVIDIA Wayland systems
 # Disables DMABUF renderer sharing that causes SIGABRT on NVIDIA proprietary drivers
 os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
-
+import logging
 import webview
+
+# Suppress benign PyWebView GTK teardown warnings when window is closed
+class PyWebViewExitFilter(logging.Filter):
+    def filter(self, record):
+        return "window.native" not in record.getMessage()
+
+logging.getLogger("pywebview").addFilter(PyWebViewExitFilter())
 
 # Ensure project root is in path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
