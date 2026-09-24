@@ -35,7 +35,8 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
+  color-scheme: dark;
   font-family: var(--font-stack);
   background-color: var(--bg-primary);
   color: var(--text-primary);
@@ -358,20 +359,50 @@ body {
   font-weight: 600;
 }
 
+.select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
 .select-wrapper select {
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  padding: 6px 12px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #141c2b !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  padding: 6px 32px 6px 12px;
   border-radius: 8px;
   font-size: 12px;
+  font-weight: 500;
   outline: none;
   cursor: pointer;
-  transition: border-color 0.15s ease;
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2300e5ff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.select-wrapper select:hover {
+  background-color: #182235 !important;
+  border-color: rgba(0, 229, 255, 0.35) !important;
 }
 
 .select-wrapper select:focus {
-  border-color: var(--border-focus);
+  border-color: var(--accent-cyan) !important;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+}
+
+.select-wrapper select option {
+  background-color: #10151f !important;
+  color: #f8fafc !important;
+  padding: 8px 12px;
 }
 
 .segmented-control {
