@@ -22,7 +22,8 @@ class OlluxAPI:
         self.client = client
         self.window = None
         self._is_generating = False
-        self._stop_requested = False
+        self._stream_lock = threading.Lock()
+        self._stop_event = threading.Event()
 
     def set_window(self, window):
         self.window = window
@@ -108,8 +109,10 @@ class OlluxAPI:
     # --- Chat Streaming & Web Search ---
 
     def stop_generation(self):
-        """Signal generation loop to halt."""
-        self._stop_requested = True
+        """Signal generation loop to halt and immediately abort HTTP stream."""
+        self._stop_event.set()
+        with self._stream_lock:
+            self._is_generating = False
         return True
 
     def send_message(
@@ -125,11 +128,12 @@ class OlluxAPI:
         Main chat pipeline.
         Saves user message -> executes web search if toggled -> formats context -> streams tokens.
         """
-        if self._is_generating:
-            return {"status": "busy"}
+        with self._stream_lock:
+            if self._is_generating:
+                return {"status": "busy"}
+            self._is_generating = True
+            self._stop_event.clear()
 
-        self._is_generating = True
-        self._stop_requested = False
         attachments = attachments or []
 
         # 1. Store user message in DB
@@ -239,22 +243,29 @@ class OlluxAPI:
                     payload = json.dumps(metrics)
                     self.window.evaluate_js(f"window.onStreamComplete({payload})")
 
-                self._is_generating = False
+                with self._stream_lock:
+                    self._is_generating = False
 
             def on_error(err_str):
                 if self.window:
                     self.window.evaluate_js(f"window.onStreamError({json.dumps(err_str)})")
-                self._is_generating = False
+                with self._stream_lock:
+                    self._is_generating = False
 
             # Launch streaming
-            self.client.stream_chat(
-                model=model,
-                messages=ollama_messages,
-                thinking_level=thinking_level,
-                on_chunk=on_chunk,
-                on_complete=on_complete,
-                on_error=on_error
-            )
+            try:
+                self.client.stream_chat(
+                    model=model,
+                    messages=ollama_messages,
+                    thinking_level=thinking_level,
+                    on_chunk=on_chunk,
+                    on_complete=on_complete,
+                    on_error=on_error,
+                    stop_event=self._stop_event
+                )
+            finally:
+                with self._stream_lock:
+                    self._is_generating = False
 
         thread = threading.Thread(target=worker, daemon=True)
         thread.start()

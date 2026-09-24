@@ -92,7 +92,8 @@ class OllamaClient:
         thinking_level: str = "med",
         on_chunk: Optional[Callable[[Dict[str, Any]], None]] = None,
         on_complete: Optional[Callable[[Dict[str, Any]], None]] = None,
-        on_error: Optional[Callable[[str], None]] = None
+        on_error: Optional[Callable[[str], None]] = None,
+        stop_event: Optional[Any] = None
     ):
         """
         Stream a chat response from Ollama.
@@ -128,6 +129,13 @@ class OllamaClient:
             first_token_time = None
 
             for line in r.iter_lines():
+                if stop_event and stop_event.is_set():
+                    try:
+                        r.close()
+                    except Exception:
+                        pass
+                    break
+
                 if not line:
                     continue
                 

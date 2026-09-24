@@ -115,6 +115,52 @@
   function setupEventListeners() {
     newChatBtn.addEventListener("click", createNewChat);
 
+    // Global Desktop Keyboard Shortcuts
+    window.addEventListener("keydown", (e) => {
+      // Ctrl+N -> New Conversation
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        createNewChat();
+        return;
+      }
+
+      // Ctrl+K -> Focus Search
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        if (sidebar.classList.contains("collapsed")) {
+          sidebar.classList.remove("collapsed");
+        }
+        searchInput.focus();
+        searchInput.select();
+        return;
+      }
+
+      // Ctrl+B -> Toggle Sidebar
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        sidebar.classList.toggle("collapsed");
+        return;
+      }
+
+      // Escape -> Close modal, cancel search, or halt generation
+      if (e.key === "Escape") {
+        if (modelModal.classList.contains("open")) {
+          modelModal.classList.remove("open");
+          return;
+        }
+        if (state.isGenerating) {
+          handleStop();
+          return;
+        }
+        if (document.activeElement === searchInput) {
+          searchInput.value = "";
+          searchInput.dispatchEvent(new Event("input"));
+          chatTextarea.focus();
+          return;
+        }
+      }
+    });
+
     toggleSidebarBtn.addEventListener("click", () => {
       sidebar.classList.toggle("collapsed");
     });
@@ -558,6 +604,7 @@
 
     state.activeAssistantBubble = {
       row: assistantRow,
+      bubble: bubble,
       drawer: thoughtDrawer,
       thoughtContent: thoughtDrawer.querySelector(".thought-content"),
       contentDiv: contentDiv
@@ -674,6 +721,37 @@
     if (state.activeAssistantBubble) {
       state.activeAssistantBubble.contentDiv.innerHTML = `<span style="color: var(--accent-cyan); font-size: 12px;">🔍 ${escapeHtml(status)}</span>`;
     }
+  };
+
+  window.onWebSearchResults = function (sources) {
+    if (!state.activeAssistantBubble || !sources || sources.length === 0) return;
+
+    let sourcesDrawer = state.activeAssistantBubble.bubble.querySelector(".sources-drawer");
+    if (!sourcesDrawer) {
+      sourcesDrawer = document.createElement("details");
+      sourcesDrawer.className = "sources-drawer";
+      sourcesDrawer.innerHTML = `
+        <summary class="sources-summary">🌐 ${sources.length} Web Sources Consulted</summary>
+        <div class="sources-list"></div>
+      `;
+      state.activeAssistantBubble.bubble.insertBefore(sourcesDrawer, state.activeAssistantBubble.contentDiv);
+    }
+
+    const listEl = sourcesDrawer.querySelector(".sources-list");
+    listEl.innerHTML = "";
+    sources.forEach((s, idx) => {
+      const item = document.createElement("a");
+      item.className = "source-item";
+      item.href = s.href;
+      item.target = "_blank";
+      item.rel = "noopener noreferrer";
+      item.innerHTML = `
+        <span class="source-index">[${idx + 1}]</span>
+        <span class="source-title">${escapeHtml(s.title || s.href)}</span>
+      `;
+      listEl.appendChild(item);
+    });
+    smartScrollToBottom();
   };
 
   // --- Model Pull & Management ---

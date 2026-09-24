@@ -607,6 +607,72 @@ html, body {
   overflow-y: auto;
 }
 
+/* Web Sources Consulted Drawer */
+.sources-drawer {
+  background: rgba(0, 229, 255, 0.04);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.sources-summary {
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sources-summary::-webkit-details-marker {
+  display: none;
+}
+
+.sources-summary::before {
+  content: "▶";
+  font-size: 8px;
+  transition: transform 0.2s ease;
+}
+
+.sources-drawer[open] .sources-summary::before {
+  transform: rotate(90deg);
+}
+
+.sources-list {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid rgba(0, 229, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.source-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #94a3b8;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.source-item:hover {
+  color: var(--accent-cyan);
+  text-decoration: underline;
+}
+
+.source-index {
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
 /* Markdown Elements in Assistant Message */
 .markdown-body p {
   margin-bottom: 12px;
