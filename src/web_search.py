@@ -7,12 +7,26 @@ Includes query sanitization, greeting bypass, and structured ground-truth format
 import re
 from typing import List, Dict, Any, Optional
 
-# Conversational greetings where web search should never be triggered
-GREETING_WORDS = {
-    "hi", "hello", "hey", "hola", "sup", "yo", "thanks", "thank you",
-    "ok", "okay", "bye", "good morning", "good evening", "good afternoon",
-    "how are you", "who are you", "what can you do", "test"
-}
+GREETING_PATTERNS = [
+    r"^(hi|hello|hey|hola|sup|yo|greetings)(\s+(there|buddy|bro|friend|bot|assistant))?$",
+    r"^(good\s+(morning|evening|afternoon|day|night))$",
+    r"^(thank\s*you|thanks(\s+(a\s+lot|so\s+much))?)$",
+    r"^(ok|okay|k|cool|alright|fine|yes|no|yeah|nah)$",
+    r"^(bye|goodbye|see\s+ya|farewell)$",
+    r"^(who\s+are\s+you|what\s+can\s+you\s+do|how\s+are\s+you(\s+doing)?)$"
+]
+
+
+def should_skip_web_search(user_query: str) -> bool:
+    """Check if query is purely conversational and does not need web search."""
+    normalized = user_query.strip().lower().strip("!.?,")
+    if len(normalized) < 2:
+        return True
+    for pat in GREETING_PATTERNS:
+        if re.match(pat, normalized):
+            return True
+    return False
+
 
 TYPO_FIXES = {
     r"\bteh\b": "the",
@@ -24,12 +38,6 @@ TYPO_FIXES = {
     r"\biphne\b": "iphone",
     r"\bmoedl\b": "model"
 }
-
-
-def should_skip_web_search(user_query: str) -> bool:
-    """Check if query is purely conversational and does not need web search."""
-    normalized = user_query.strip().lower().strip("!.?,")
-    return normalized in GREETING_WORDS or len(normalized) < 3
 
 
 def clean_search_query(user_query: str) -> Optional[str]:
@@ -67,21 +75,34 @@ def clean_search_query(user_query: str) -> Optional[str]:
     return query if len(query) >= 3 else user_query.strip()
 
 
+_search_cache: Dict[str, Any] = {}
+
+
 def perform_web_search(query: str, max_results: int = 5) -> List[Dict[str, str]]:
     """
     Search DuckDuckGo for live query context.
     Returns list of dicts with title, href, and body.
+    Includes in-memory caching to avoid redundant network calls.
     """
+    import time
+
     cleaned = clean_search_query(query)
     if not cleaned:
         return []
 
+    cache_key = f"{cleaned}:{max_results}"
+    now = time.time()
+    if cache_key in _search_cache:
+        cached_entry = _search_cache[cache_key]
+        if now - cached_entry["time"] < 300:  # 5 min TTL
+            return cached_entry["results"]
+
     results = []
 
-    # 1. Primary: modern ddgs library
+    # 1. Primary: modern ddgs library with 4s timeout
     try:
         from ddgs import DDGS
-        with DDGS() as ddgs:
+        with DDGS(timeout=4) as ddgs:
             raw = list(ddgs.text(cleaned, max_results=max_results))
             for item in raw:
                 body = item.get("body", "").strip()
@@ -92,6 +113,7 @@ def perform_web_search(query: str, max_results: int = 5) -> List[Dict[str, str]]
                         "body": body
                     })
             if results:
+                _search_cache[cache_key] = {"results": results, "time": now}
                 return results
     except Exception:
         pass
