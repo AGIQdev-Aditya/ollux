@@ -654,6 +654,9 @@
     if (!state.activeAssistantBubble) return;
 
     if (chunk.type === "thinking") {
+      if (!state.accumulatedContent && state.activeAssistantBubble.contentDiv.textContent.includes("Searching web")) {
+        state.activeAssistantBubble.contentDiv.innerHTML = `<span class="cursor-pulse">▋</span>`;
+      }
       state.accumulatedThinking += chunk.token;
       state.activeAssistantBubble.drawer.style.display = "block";
       state.activeAssistantBubble.drawer.open = true;
@@ -683,7 +686,12 @@
     }
 
     // Append performance metrics
-    if (metrics && metrics.eval_count) {
+    if (metrics && metrics.stopped) {
+      const footer = document.createElement("div");
+      footer.className = "metrics-footer";
+      footer.innerHTML = `<span class="metric-badge" style="color: var(--accent-amber);">⏹ Stopped</span>`;
+      state.activeAssistantBubble.row.querySelector(".assistant-bubble").appendChild(footer);
+    } else if (metrics && metrics.eval_count) {
       const footer = document.createElement("div");
       footer.className = "metrics-footer";
       footer.innerHTML = `
@@ -708,6 +716,7 @@
     }
     state.isGenerating = false;
     updateSendButtonState(false);
+    state.activeAssistantBubble = null;
   };
 
   window.onSessionRenamed = function (data) {
@@ -725,6 +734,10 @@
 
   window.onWebSearchResults = function (sources) {
     if (!state.activeAssistantBubble || !sources || sources.length === 0) return;
+
+    if (!state.accumulatedContent) {
+      state.activeAssistantBubble.contentDiv.innerHTML = `<span class="cursor-pulse">▋</span>`;
+    }
 
     let sourcesDrawer = state.activeAssistantBubble.bubble.querySelector(".sources-drawer");
     if (!sourcesDrawer) {

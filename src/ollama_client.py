@@ -127,9 +127,11 @@ class OllamaClient:
             thinking_buffer = ""
             content_buffer = ""
             first_token_time = None
+            stopped_early = False
 
             for line in r.iter_lines():
                 if stop_event and stop_event.is_set():
+                    stopped_early = True
                     try:
                         r.close()
                     except Exception:
@@ -215,6 +217,21 @@ class OllamaClient:
                     if on_complete:
                         on_complete(metrics)
                     break
+
+            if stopped_early and on_complete:
+                elapsed = time.time() - start_wall_time
+                metrics = {
+                    "eval_count": len(content_buffer.split()),
+                    "eval_duration_secs": round(elapsed, 2),
+                    "tokens_per_second": 0,
+                    "prompt_eval_count": 0,
+                    "prompt_tokens_per_second": 0,
+                    "time_to_first_token_secs": round((first_token_time - start_wall_time) if first_token_time else 0, 2),
+                    "total_duration_secs": round(elapsed, 2),
+                    "has_thinking": len(thinking_buffer.strip()) > 0,
+                    "stopped": True
+                }
+                on_complete(metrics)
 
         except Exception as e:
             if on_error:

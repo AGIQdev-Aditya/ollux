@@ -25,6 +25,18 @@ class OlluxAPI:
         self._stream_lock = threading.Lock()
         self._stop_event = threading.Event()
 
+    @property
+    def _stop_requested(self) -> bool:
+        """Compatibility property reflecting stop event state."""
+        return self._stop_event.is_set()
+
+    @_stop_requested.setter
+    def _stop_requested(self, val: bool):
+        if val:
+            self._stop_event.set()
+        else:
+            self._stop_event.clear()
+
     def set_window(self, window):
         self.window = window
 
@@ -180,8 +192,9 @@ class OlluxAPI:
             history_rows = self.db.get_messages(session_id)
             ollama_messages = []
 
-            # If web search returned context, inject as system guidance
-            if search_context_prompt:
+            # If web search returned context, inject as system guidance (or prepend for legacy models)
+            is_legacy = any(k in model.lower() for k in ["llama2", "alpaca", "vicuna"])
+            if search_context_prompt and not is_legacy:
                 ollama_messages.append({"role": "system", "content": search_context_prompt})
 
             # Check if any attachments contain document text or images
@@ -194,10 +207,13 @@ class OlluxAPI:
             for idx, msg in enumerate(history_rows):
                 msg_content = msg["content"]
                 
-                # If this is the last user message, append attached document text
-                if idx == len(history_rows) - 1 and attached_text_blocks:
-                    combined_docs = "\n\n".join(attached_text_blocks)
-                    msg_content = f"{combined_docs}\n\nUser Question:\n{msg_content}"
+                # If this is the last user message, prepend search context for legacy models and append attachments
+                if idx == len(history_rows) - 1:
+                    if is_legacy and search_context_prompt:
+                        msg_content = f"{search_context_prompt}\n\nUser Question:\n{msg_content}"
+                    if attached_text_blocks:
+                        combined_docs = "\n\n".join(attached_text_blocks)
+                        msg_content = f"{combined_docs}\n\nUser Question:\n{msg_content}"
 
                 item = {"role": msg["role"], "content": msg_content}
 
@@ -215,7 +231,7 @@ class OlluxAPI:
             accumulated_thinking = []
 
             def on_chunk(chunk_data):
-                if self._stop_requested:
+                if self._stop_event.is_set():
                     return
                 if chunk_data["type"] == "content":
                     accumulated_content.append(chunk_data["token"])
