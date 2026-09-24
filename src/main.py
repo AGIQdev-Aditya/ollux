@@ -1,0 +1,44 @@
+"""
+ollux — Native Linux Desktop Client for Ollama
+Main entry point and window manager.
+"""
+
+import os
+import sys
+import webview
+
+# Ensure project root is in path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from src.database import Database
+from src.ollama_client import OllamaClient
+from src.api import OlluxAPI
+
+
+def main():
+    # Initialize Core Engines
+    db = Database()
+    client = OllamaClient()
+    api = OlluxAPI(db, client)
+
+    ui_index_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "ui", "index.html"))
+
+    # Create Native WebKit2GTK Window
+    window = webview.create_window(
+        title="ollux",
+        url=f"file://{ui_index_path}",
+        js_api=api,
+        width=1120,
+        height=760,
+        min_size=(740, 520),
+        background_color="#0a0e14",
+        text_select=True
+    )
+    api.set_window(window)
+
+    # Start PyWebView with GTK backend (Wayland native)
+    webview.start(gui="gtk", debug=("--debug" in sys.argv))
+
+
+if __name__ == "__main__":
+    main()

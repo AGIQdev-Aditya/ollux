@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=ollux
+Comment=Ultra-lightweight Native Linux Desktop Client for Ollama
+Exec=/home/luca/Workspace/ollux/run.sh
+Icon=/home/luca/Workspace/ollux/assets/ollux.svg
+Terminal=false
+Type=Application
+Categories=Utility;Development;ArtificialIntelligence;
+Keywords=ollama;ai;llm;chat;reasoning;
+StartupWMClass=ollux

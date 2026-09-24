@@ -1,0 +1,4 @@
+pywebview>=5.0.0
+requests>=2.31.0
+pypdf>=4.0.0
+ddgs>=1.0.0

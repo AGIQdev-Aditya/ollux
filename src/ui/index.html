@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ollux — Native Linux Ollama Client</title>
+  <link rel="stylesheet" href="css/vendor/highlight.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dark-theme">
+  <div class="app-layout">
+    
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">🦙</div>
+          <div class="brand-info">
+            <span class="brand-title">ollux</span>
+            <span class="brand-tag">NATIVE LINUX</span>
+          </div>
+        </div>
+        <div class="status-indicator" id="daemon-status" title="Ollama Daemon Status">
+          <span class="status-dot"></span>
+          <span class="status-text">Checking...</span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary new-chat-btn" id="new-chat-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        New Conversation
+      </button>
+
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Search chats..." autocomplete="off">
+      </div>
+
+      <div class="sessions-scroll" id="sessions-list">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="footer-btn" id="open-model-hub">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+          Model Manager
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CHAT WORKSPACE -->
+    <main class="chat-main">
+      <!-- TOP NAVIGATION BAR -->
+      <header class="top-nav">
+        <div class="nav-left">
+          <button class="icon-btn toggle-sidebar" id="toggle-sidebar" title="Toggle Sidebar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="chat-title-container">
+            <h2 class="chat-title" id="chat-title" contenteditable="true" spellcheck="false" title="Click to rename">New Chat</h2>
+          </div>
+        </div>
+
+        <div class="nav-controls">
+          <!-- MODEL SELECTOR -->
+          <div class="control-group">
+            <label class="control-label">Model</label>
+            <div class="select-wrapper">
+              <select id="model-select">
+                <option value="" disabled selected>Loading models...</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- THINKING LEVEL SELECTOR -->
+          <div class="control-group">
+            <label class="control-label">Thinking Strength</label>
+            <div class="segmented-control" id="thinking-selector">
+              <button class="seg-btn" data-level="low" title="Fast direct answers, low temperature">Low</button>
+              <button class="seg-btn active" data-level="med" title="Balanced reasoning">Med</button>
+              <button class="seg-btn" data-level="high" title="Deep chain-of-thought exploration">High</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- MESSAGES SCROLL CONTAINER -->
+      <div class="messages-container" id="messages-container">
+        <!-- WELCOME STATE -->
+        <div class="welcome-screen" id="welcome-screen">
+          <div class="welcome-badge">⚡ POWERED BY LOCAL OLLAMA</div>
+          <h1>What do you want to explore today?</h1>
+          <p class="welcome-subtitle">Ultra-lightweight Linux desktop client for deep reasoning models, documents, and code.</p>
+          
+          <div class="quick-prompts">
+            <button class="prompt-chip" data-prompt="Explain the difference between Arch Linux Pacman and the AUR, and how PKGBUILD works.">
+              📦 Arch Pacman vs AUR & PKGBUILD
+            </button>
+            <button class="prompt-chip" data-prompt="Write an ESP32 FreeRTOS C++ program that samples an MPU6050 accelerometer on Core 0.">
+              ⚡ ESP32 FreeRTOS Dual-Core Driver
+            </button>
+            <button class="prompt-chip" data-prompt="Which is bigger: 9.11 or 9.9? Walk through your mathematical reasoning step-by-step.">
+              🧠 Mathematical Reasoning Test
+            </button>
+            <button class="prompt-chip" data-prompt="Search the web and tell me the latest stable Linux kernel version and its key features.">
+              🌐 Web Search: Latest Linux Kernel
+            </button>
+          </div>
+        </div>
+
+        <div class="messages-feed" id="messages-feed">
+          <!-- Chat messages dynamically rendered here -->
+        </div>
+      </div>
+
+      <!-- BOTTOM INPUT DOCK -->
+      <footer class="input-dock">
+        <!-- ATTACHMENT TRAY -->
+        <div class="attachment-tray" id="attachment-tray"></div>
+
+        <div class="input-box-wrapper">
+          <textarea
+            id="chat-textarea"
+            rows="1"
+            placeholder="Type your prompt here... (Shift+Enter for new line)"
+            autocomplete="off"
+          ></textarea>
+
+          <div class="input-actions">
+            <button class="dock-btn" id="attach-file-btn" title="Attach file (PDF, Image, Code, Text)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+              </svg>
+            </button>
+
+            <button class="dock-btn toggle-tool" id="web-search-btn" title="Toggle DuckDuckGo Web Search">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+              <span>Web</span>
+            </button>
+
+            <button class="send-btn" id="send-btn" title="Send Message">
+              <svg class="send-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+              <svg class="stop-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="dock-footnote">
+          <span>ollux v0.1.0 • Wayland Native • 100% Local Inference</span>
+        </div>
+      </footer>
+    </main>
+
+    <!-- MODEL MANAGER MODAL -->
+    <div class="modal-backdrop" id="model-modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Local Model Hub</h3>
+          <button class="close-modal-btn" id="close-model-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="pull-section">
+            <label class="modal-label">Pull Model from Ollama Library</label>
+            <div class="pull-input-group">
+              <input type="text" id="pull-model-name" placeholder="e.g. deepseek-r1:8b, mistral, gemma2:9b" autocomplete="off">
+              <button class="btn btn-primary" id="pull-model-btn">Pull Model</button>
+            </div>
+            <div class="pull-progress-container" id="pull-progress-container" style="display: none;">
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="pull-progress-bar"></div>
+              </div>
+              <div class="pull-status-label" id="pull-status-label">Initializing pull...</div>
+            </div>
+          </div>
+
+          <div class="installed-section">
+            <label class="modal-label">Installed Models</label>
+            <div class="models-table-wrapper">
+              <table class="models-table">
+                <thead>
+                  <tr>
+                    <th>Model</th>
+                    <th>Parameters</th>
+                    <th>Disk Size</th>
+                    <th>Quantization</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="installed-models-tbody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- OFFLINE VENDOR SCRIPTS -->
+  <script src="js/vendor/marked.min.js"></script>
+  <script src="js/vendor/highlight.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
