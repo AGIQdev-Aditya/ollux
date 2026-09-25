@@ -12,12 +12,24 @@ os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
 import logging
 import webview
 
-# Suppress benign PyWebView GTK teardown warnings when window is closed
-class PyWebViewExitFilter(logging.Filter):
-    def filter(self, record):
-        return "window.native" not in record.getMessage()
-
-logging.getLogger("pywebview").addFilter(PyWebViewExitFilter())
+# Configure WebKit2 and GTK3 environment
+try:
+    import gi
+    try:
+        gi.require_version("WebKit2", "4.1")
+    except ValueError:
+        try:
+            gi.require_version("WebKit2", "4.0")
+        except ValueError:
+            pass
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk
+    # Enforce dark theme for GTK window title bar across GNOME, KDE, XFCE
+    gtk_settings = Gtk.Settings.get_default()
+    if gtk_settings:
+        gtk_settings.set_property("gtk-application-prefer-dark-theme", True)
+except Exception:
+    pass
 
 # Ensure project root is in path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

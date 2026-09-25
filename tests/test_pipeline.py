@@ -106,7 +106,7 @@ def test_full_pipeline():
         time.sleep(0.1)
 
     assert not api._is_generating, "API stream did not finish in time"
-    chunk_calls = [c for c in mock_win.evals if "onStreamChunk" in c]
+    chunk_calls = [c for c in mock_win.evals if "onStreamChunk" in c or "onStreamBatch" in c]
     complete_calls = [c for c in mock_win.evals if "onStreamComplete" in c]
     error_calls = [c for c in mock_win.evals if "onStreamError" in c]
 

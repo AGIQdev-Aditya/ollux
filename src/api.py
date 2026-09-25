@@ -6,6 +6,7 @@ Handles asynchronous streaming, threading, file dialogs, and SQLite persistence.
 
 import os
 import json
+import time
 import threading
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
@@ -311,6 +312,21 @@ class OlluxAPI:
 
             accumulated_content = []
             accumulated_thinking = []
+            chunk_buffer = []
+            chunk_lock = threading.Lock()
+            last_flush = [time.time()]
+
+            def flush_chunks():
+                with chunk_lock:
+                    if not chunk_buffer:
+                        return
+                    batch = list(chunk_buffer)
+                    chunk_buffer.clear()
+                    last_flush[0] = time.time()
+
+                if self.window and not self._stop_event.is_set():
+                    payload = json.dumps(batch)
+                    self.window.evaluate_js(f"window.onStreamBatch({payload})")
 
             def on_chunk(chunk_data):
                 if self._stop_event.is_set():
@@ -320,11 +336,16 @@ class OlluxAPI:
                 elif chunk_data["type"] == "thinking":
                     accumulated_thinking.append(chunk_data["token"])
 
-                if self.window:
-                    payload = json.dumps(chunk_data)
-                    self.window.evaluate_js(f"window.onStreamChunk({payload})")
+                now = time.time()
+                with chunk_lock:
+                    chunk_buffer.append(chunk_data)
+                    should_flush = (now - last_flush[0] >= 0.016) or len(chunk_buffer) >= 6
+
+                if should_flush:
+                    flush_chunks()
 
             def on_complete(metrics):
+                flush_chunks()
                 full_content = "".join(accumulated_content)
                 full_thinking = "".join(accumulated_thinking)
 

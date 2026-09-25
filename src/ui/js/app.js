@@ -979,8 +979,8 @@
     }, delay);
   }
 
-  window.onStreamChunk = function (chunk) {
-    if (!state.activeAssistantBubble) return;
+  function handleChunk(chunk) {
+    if (!state.activeAssistantBubble || !chunk) return;
 
     if (chunk.type === "thinking") {
       if (!state.accumulatedContent && state.activeAssistantBubble.contentDiv.textContent.includes("Searching web")) {
@@ -994,6 +994,17 @@
     } else if (chunk.type === "content") {
       state.accumulatedContent += chunk.token;
       scheduleStreamRender();
+    }
+  }
+
+  window.onStreamChunk = function (chunk) {
+    handleChunk(chunk);
+  };
+
+  window.onStreamBatch = function (batch) {
+    if (!Array.isArray(batch)) return;
+    for (let i = 0; i < batch.length; i++) {
+      handleChunk(batch[i]);
     }
   };
 
@@ -1195,6 +1206,13 @@
       html = marked.parse(text || "");
     } else {
       html = escapeHtml(text).replace(/\n/g, "<br>");
+    }
+
+    if (typeof DOMPurify !== "undefined") {
+      html = DOMPurify.sanitize(html, {
+        ADD_TAGS: ["button"],
+        ADD_ATTR: ["onclick", "class"]
+      });
     }
 
     if (showCursor) {
