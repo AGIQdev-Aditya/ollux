@@ -161,7 +161,7 @@ class OlluxAPI:
         result = self.window.create_file_dialog(
             webview.OPEN_DIALOG,
             allow_multiple=True,
-            file_types=('All files (*.*)', 'PDF (*.pdf)', 'Images (*.png;*.jpg;*.jpeg;*.webp)', 'Text / Code (*.txt;*.py;*.js;*.md;*.json;*.cpp;*.c;*.sh)')
+            file_types=('All files (*.*)', 'PDF documents (*.pdf)', 'Image files (*.png;*.jpg;*.jpeg;*.webp)', 'Code and Text (*.txt;*.py;*.js;*.md;*.json;*.cpp;*.c;*.sh)')
         )
         return list(result) if result else []
 

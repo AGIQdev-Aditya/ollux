@@ -18,6 +18,14 @@ def process_file(filepath: str) -> Optional[Dict[str, Any]]:
         return None
 
     filename = os.path.basename(filepath)
+
+    if os.path.isdir(filepath):
+        return {
+            "name": filename,
+            "type": "error",
+            "error": f"'{filename}' is a directory. Please select or drag individual files."
+        }
+
     ext = os.path.splitext(filename)[1].lower()
     size_bytes = os.path.getsize(filepath)
     size_str = f"{size_bytes / 1024:.1f} KB" if size_bytes < 1024 * 1024 else f"{size_bytes / (1024*1024):.1f} MB"

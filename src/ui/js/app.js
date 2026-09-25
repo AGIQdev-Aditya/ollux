@@ -263,17 +263,20 @@
     // Attach File Button
     attachFileBtn.addEventListener("click", handleFileAttachment);
 
-    // Native Drag and Drop for Files
+    // Native Drag and Drop for Files (Supports Wayland GTK File Managers like Nautilus & Dolphin)
     ["dragenter", "dragover"].forEach((evt) => {
       window.addEventListener(evt, (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (e.dataTransfer) {
+          e.dataTransfer.dropEffect = "copy";
+        }
         const wrapper = document.querySelector(".input-box-wrapper");
         if (wrapper) wrapper.classList.add("drag-over");
       }, false);
     });
 
-    ["dragleave", "drop"].forEach((evt) => {
+    ["dragleave"].forEach((evt) => {
       window.addEventListener(evt, (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -285,10 +288,38 @@
     window.addEventListener("drop", async (e) => {
       e.preventDefault();
       e.stopPropagation();
+      const wrapper = document.querySelector(".input-box-wrapper");
+      if (wrapper) wrapper.classList.remove("drag-over");
+
+      // 1. Standard HTML5 FileList (browsers, direct file drops)
       const files = e.dataTransfer ? e.dataTransfer.files : [];
       if (files && files.length > 0) {
         for (let i = 0; i < files.length; i++) {
           await processIncomingFile(files[i]);
+        }
+        return;
+      }
+
+      // 2. Linux Wayland / GTK File Manager (Nautilus, Dolphin, Thunar) via URI list
+      const uriList = e.dataTransfer ? (e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text/plain")) : "";
+      if (uriList && uriList.trim()) {
+        const lines = uriList.split(/[\r\n]+/);
+        for (const rawLine of lines) {
+          let line = rawLine.trim();
+          if (!line || line.startsWith("#")) continue;
+          if (line.startsWith("file://")) {
+            line = decodeURIComponent(line.slice(7));
+          }
+          if (line && window.pywebview) {
+            const data = await window.pywebview.api.parse_attachment(line);
+            if (data) {
+              if (data.type === "error" || data.error) {
+                showNotification(`⚠️ ${data.error || "Could not attach item"}`);
+              } else {
+                addAttachmentChip(data);
+              }
+            }
+          }
         }
       }
     });
