@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from src.database import Database
 from src.ollama_client import OllamaClient
 from src.api import OlluxAPI
+from src.dnd_handler import install_gtk_dnd
 
 
 def main():
@@ -47,6 +48,9 @@ def main():
         text_select=True
     )
     api.set_window(window)
+
+    # Attach Native Wayland GTK Drag-and-Drop Handler
+    install_gtk_dnd(window)
 
     # Start PyWebView with GTK backend (Wayland native)
     webview.start(gui="gtk", debug=("--debug" in sys.argv))

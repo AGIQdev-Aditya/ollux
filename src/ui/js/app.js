@@ -273,10 +273,45 @@
     // Attach File Button
     attachFileBtn.addEventListener("click", handleFileAttachment);
 
-    // Native Drag and Drop for Files (Supports Wayland GTK File Managers like Nautilus & Dolphin)
+    // ==========================================
+    // Native Wayland DnD Integration (Invoked from GTK backend)
+    // ==========================================
     const dropOverlay = document.getElementById("drop-overlay");
     let dragCounter = 0;
 
+    window.setNativeDragActive = function (active) {
+      if (active) {
+        if (dropOverlay) dropOverlay.classList.add("active");
+      } else {
+        dragCounter = 0;
+        if (dropOverlay) dropOverlay.classList.remove("active");
+      }
+    };
+
+    window.onNativeFilesDropped = async function (paths) {
+      dragCounter = 0;
+      if (dropOverlay) dropOverlay.classList.remove("active");
+      if (!paths || !Array.isArray(paths) || paths.length === 0) return;
+      if (!window.pywebview) return;
+
+      for (const p of paths) {
+        try {
+          const data = await window.pywebview.api.parse_attachment(p);
+          if (data) {
+            if (data.type === "error" || data.error) {
+              showNotification(`⚠️ ${data.error || "Could not attach item"}`);
+            } else {
+              addAttachmentChip(data);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to parse dropped attachment:", p, err);
+          showNotification(`⚠️ Failed to parse attachment: ${p}`);
+        }
+      }
+    };
+
+    // Native Drag and Drop for Files (HTML5 fallback)
     window.addEventListener("dragenter", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -542,12 +577,24 @@
   let currentSessionMessages = [];
   let renderedStartIndex = 0;
 
+  function updateDockTokenInfo(metrics) {
+    const dockTokenEl = document.getElementById("dock-token-info");
+    if (!dockTokenEl) return;
+    if (metrics && metrics.total_tokens && metrics.context_length) {
+      dockTokenEl.textContent = `🧠 Context: ${metrics.total_tokens.toLocaleString()} / ${metrics.context_length.toLocaleString()} tokens (${metrics.context_used_pct}%)`;
+      dockTokenEl.style.display = "inline-flex";
+    } else {
+      dockTokenEl.style.display = "none";
+    }
+  }
+
   function renderMessages(messages) {
     currentSessionMessages = messages || [];
     messagesFeed.innerHTML = "";
     if (currentSessionMessages.length === 0) {
       welcomeScreen.style.display = "block";
       messagesFeed.style.display = "none";
+      updateDockTokenInfo(null);
       return;
     }
 
@@ -569,6 +616,9 @@
       const row = createMessageRow(currentSessionMessages[i]);
       messagesFeed.appendChild(row);
     }
+
+    const lastWithMetrics = [...currentSessionMessages].reverse().find(m => m.metrics && m.metrics.total_tokens);
+    updateDockTokenInfo(lastWithMetrics ? lastWithMetrics.metrics : null);
     scrollToBottom();
   }
 
@@ -670,14 +720,18 @@
 
       // Metrics Footer
       if (msg.metrics && msg.metrics.eval_count) {
+        const m = msg.metrics;
         const footer = document.createElement("div");
         footer.className = "metrics-footer";
+        const ctxHtml = m.context_length && m.total_tokens
+          ? `<span>•</span><span class="metric-badge context-badge" title="Context: ${m.prompt_eval_count || 0} prompt + ${m.eval_count} generated tokens">🧠 ${m.total_tokens.toLocaleString()} / ${m.context_length.toLocaleString()} tokens (${m.context_used_pct}%)</span>`
+          : `<span>•</span><span class="metric-badge">${m.eval_count} tokens</span>`;
+
         footer.innerHTML = `
-          <span class="metric-badge speed">⚡ ${msg.metrics.tokens_per_second} tokens/s</span>
+          <span class="metric-badge speed">⚡ ${m.tokens_per_second} tokens/s</span>
           <span>•</span>
-          <span class="metric-badge">${msg.metrics.eval_count} tokens</span>
-          <span>•</span>
-          <span class="metric-badge">${msg.metrics.eval_duration_secs}s</span>
+          <span class="metric-badge">${m.eval_count} tokens (${m.eval_duration_secs}s)</span>
+          ${ctxHtml}
         `;
         bubble.appendChild(footer);
       }
@@ -969,14 +1023,18 @@
     } else if (metrics && metrics.eval_count) {
       const footer = document.createElement("div");
       footer.className = "metrics-footer";
+      const ctxHtml = metrics.context_length && metrics.total_tokens
+        ? `<span>•</span><span class="metric-badge context-badge" title="Context: ${metrics.prompt_eval_count || 0} prompt + ${metrics.eval_count} generated tokens">🧠 ${metrics.total_tokens.toLocaleString()} / ${metrics.context_length.toLocaleString()} tokens (${metrics.context_used_pct}%)</span>`
+        : `<span>•</span><span class="metric-badge">${metrics.eval_count} tokens</span>`;
+
       footer.innerHTML = `
         <span class="metric-badge speed">⚡ ${metrics.tokens_per_second} tokens/s</span>
         <span>•</span>
-        <span class="metric-badge">${metrics.eval_count} tokens</span>
-        <span>•</span>
-        <span class="metric-badge">${metrics.eval_duration_secs}s</span>
+        <span class="metric-badge">${metrics.eval_count} tokens (${metrics.eval_duration_secs}s)</span>
+        ${ctxHtml}
       `;
       state.activeAssistantBubble.row.querySelector(".assistant-bubble").appendChild(footer);
+      updateDockTokenInfo(metrics);
     }
 
     state.isGenerating = false;

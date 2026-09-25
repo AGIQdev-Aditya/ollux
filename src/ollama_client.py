@@ -85,6 +85,26 @@ class OllamaClient:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    def get_model_context_length(self, model_name: str) -> int:
+        """Fetch model's context window limit from Ollama /api/show or default."""
+        if not hasattr(self, "_ctx_cache"):
+            self._ctx_cache = {}
+        if model_name in self._ctx_cache:
+            return self._ctx_cache[model_name]
+        try:
+            r = requests.post(f"{self.host}/api/show", json={"name": model_name}, timeout=3.0)
+            if r.status_code == 200:
+                data = r.json()
+                info = data.get("model_info", {})
+                ctx = next((v for k, v in info.items() if "context_length" in k), None)
+                if ctx and isinstance(ctx, (int, float)):
+                    self._ctx_cache[model_name] = int(ctx)
+                    return int(ctx)
+        except Exception:
+            pass
+        self._ctx_cache[model_name] = 4096
+        return 4096
+
     def stream_chat(
         self,
         model: str,
@@ -246,11 +266,18 @@ class OllamaClient:
 
                     ttft = (first_token_time - start_wall_time) if first_token_time else 0
 
+                    context_length = self.get_model_context_length(model)
+                    total_tokens = prompt_eval_count + eval_count
+                    context_used_pct = round((total_tokens / context_length) * 100, 1) if context_length > 0 else 0
+
                     metrics = {
                         "eval_count": eval_count,
                         "eval_duration_secs": round(eval_secs, 2),
                         "tokens_per_second": round(tokens_per_sec, 2),
                         "prompt_eval_count": prompt_eval_count,
+                        "total_tokens": total_tokens,
+                        "context_length": context_length,
+                        "context_used_pct": context_used_pct,
                         "prompt_tokens_per_second": round(prompt_tps, 2),
                         "time_to_first_token_secs": round(ttft, 2),
                         "total_duration_secs": round(total_duration_ns / 1e9, 2),
