@@ -169,6 +169,32 @@ class OlluxAPI:
         """Extract text or encode image from file path."""
         return process_file(filepath)
 
+    def parse_attachment_b64(self, filename: str, b64_content: str) -> Optional[Dict[str, Any]]:
+        """Extract text or document data from base64 buffer when path is sandboxed."""
+        import base64
+        import io
+        ext = os.path.splitext(filename)[1].lower()
+        if ext == ".pdf":
+            try:
+                from pypdf import PdfReader
+                pdf_bytes = base64.b64decode(b64_content)
+                reader = PdfReader(io.BytesIO(pdf_bytes))
+                pages_text = []
+                for i, page in enumerate(reader.pages):
+                    text = page.extract_text() or ""
+                    if text.strip():
+                        pages_text.append(f"--- Page {i+1} ---\n{text.strip()}")
+                return {
+                    "name": filename,
+                    "type": "pdf",
+                    "size": f"{len(pdf_bytes)/1024:.1f} KB",
+                    "pages": len(reader.pages),
+                    "text": "\n\n".join(pages_text)
+                }
+            except Exception as e:
+                return {"name": filename, "type": "error", "error": str(e)}
+        return None
+
     # --- Chat Streaming & Web Search ---
 
     def stop_generation(self):

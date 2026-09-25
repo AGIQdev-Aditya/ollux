@@ -263,6 +263,36 @@
     // Attach File Button
     attachFileBtn.addEventListener("click", handleFileAttachment);
 
+    // Native Drag and Drop for Files
+    ["dragenter", "dragover"].forEach((evt) => {
+      window.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const wrapper = document.querySelector(".input-box-wrapper");
+        if (wrapper) wrapper.classList.add("drag-over");
+      }, false);
+    });
+
+    ["dragleave", "drop"].forEach((evt) => {
+      window.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const wrapper = document.querySelector(".input-box-wrapper");
+        if (wrapper) wrapper.classList.remove("drag-over");
+      }, false);
+    });
+
+    window.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const files = e.dataTransfer ? e.dataTransfer.files : [];
+      if (files && files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+          await processIncomingFile(files[i]);
+        }
+      }
+    });
+
     // Quick Prompts on Welcome Screen
     document.querySelectorAll(".prompt-chip").forEach((chip) => {
       chip.addEventListener("click", () => {
@@ -580,7 +610,77 @@
     return row;
   }
 
-  // --- Attachments & Large Paste Handler ---
+  // --- Attachments, Drag-and-Drop & Large Paste Handler ---
+
+  async function processIncomingFile(file) {
+    if (!file) return;
+
+    const MAX_SIZE = 15 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      showNotification(`File "${file.name}" exceeds 15MB limit.`);
+      return;
+    }
+
+    const sizeStr = file.size < 1024 * 1024
+      ? `${(file.size / 1024).toFixed(1)} KB`
+      : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+
+    // 1. If native file path is exposed by WebKitGTK / PyWebView
+    if (file.path && window.pywebview) {
+      const data = await window.pywebview.api.parse_attachment(file.path);
+      if (data && !data.error) {
+        addAttachmentChip(data);
+        return;
+      }
+    }
+
+    // 2. Browser FileReader fallback
+    const ext = (file.name.split('.').pop() || "").toLowerCase();
+    const isImage = ["png", "jpg", "jpeg", "webp"].includes(ext) || (file.type && file.type.startsWith("image/"));
+    const isPdf = ext === "pdf" || file.type === "application/pdf";
+
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const full = reader.result || "";
+        const raw = full.includes(",") ? full.split(",")[1] : full;
+        addAttachmentChip({
+          name: file.name,
+          type: "image",
+          size: sizeStr,
+          base64: raw
+        });
+      };
+      reader.readAsDataURL(file);
+    } else if (isPdf) {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const full = reader.result || "";
+        const raw = full.includes(",") ? full.split(",")[1] : full;
+        if (window.pywebview) {
+          const data = await window.pywebview.api.parse_attachment_b64(file.name, raw);
+          if (data && !data.error) {
+            addAttachmentChip(data);
+          } else {
+            showNotification(`Could not extract PDF text: ${data ? data.error : "Unknown error"}`);
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // Plain text, markdown, code
+      const reader = new FileReader();
+      reader.onload = () => {
+        addAttachmentChip({
+          name: file.name,
+          type: "text",
+          size: sizeStr,
+          text: reader.result || ""
+        });
+      };
+      reader.readAsText(file);
+    }
+  }
 
   async function handleFileAttachment() {
     if (!window.pywebview) return;
