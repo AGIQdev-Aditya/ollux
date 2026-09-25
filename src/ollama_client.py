@@ -110,6 +110,7 @@ class OllamaClient:
         model: str,
         messages: list,
         thinking_level: str = "med",
+        num_ctx: Optional[int] = None,
         on_chunk: Optional[Callable[[Dict[str, Any]], None]] = None,
         on_complete: Optional[Callable[[Dict[str, Any]], None]] = None,
         on_error: Optional[Callable[[str], None]] = None,
@@ -126,6 +127,9 @@ class OllamaClient:
             "med": {"temperature": 0.6, "top_p": 0.8, "num_predict": 2048},
             "high": {"temperature": 0.85, "top_p": 0.95, "num_predict": 4096}
         }.get(thinking_level.lower(), {"temperature": 0.6, "top_p": 0.8, "num_predict": 2048})
+        
+        if num_ctx is not None and num_ctx > 2048:
+            params["num_ctx"] = num_ctx
 
         payload = {
             "model": model,

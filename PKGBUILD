@@ -11,6 +11,8 @@ depends=(
     'python-pywebview'
     'python-requests'
     'python-pypdf'
+    'python-gobject'
+    'gtk3'
     'webkit2gtk-4.1'
 )
 optdepends=(

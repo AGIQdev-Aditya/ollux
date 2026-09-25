@@ -282,10 +282,14 @@ class OlluxAPI:
 
             # Check if any attachments contain document text or images
             attached_text_blocks = []
+            estimated_attachment_tokens = 0
             for att in attachments:
                 if att.get("type") in ["pdf", "text"] and att.get("text"):
                     name = att.get("name", "Document")
-                    attached_text_blocks.append(f"--- Document Content: {name} ---\n{att['text']}\n--- End of {name} ---")
+                    block = f"--- Document Content: {name} ---\n{att['text']}\n--- End of {name} ---"
+                    attached_text_blocks.append(block)
+                    estimated_attachment_tokens += len(block) // 3
+                    
 
             for idx, msg in enumerate(history_rows):
                 msg_content = msg["content"]
@@ -373,10 +377,13 @@ class OlluxAPI:
 
             # Launch streaming
             try:
+                target_num_ctx = max(2048, estimated_attachment_tokens + 1024) if estimated_attachment_tokens > 0 else None
+                
                 self.client.stream_chat(
                     model=model,
                     messages=ollama_messages,
                     thinking_level=thinking_level,
+                    num_ctx=target_num_ctx,
                     on_chunk=on_chunk,
                     on_complete=on_complete,
                     on_error=on_error,
@@ -385,6 +392,17 @@ class OlluxAPI:
             finally:
                 with self._stream_lock:
                     self._is_generating = False
+                
+                # Trim WebKit memory
+                try:
+                    import gi
+                    gi.require_version("WebKit2", "4.1")
+                    from gi.repository import WebKit2
+                    # Run on GLib idle to ensure it executes in the main thread
+                    from gi.repository import GLib
+                    GLib.idle_add(lambda: WebKit2.WebContext.get_default().clear_cache() or False)
+                except Exception:
+                    pass
 
         thread = threading.Thread(target=worker, daemon=True)
         thread.start()

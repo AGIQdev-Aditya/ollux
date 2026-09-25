@@ -132,6 +132,17 @@
 
     // Global Desktop Keyboard Shortcuts
     window.addEventListener("keydown", (e) => {
+      // Ctrl+Shift+C -> Copy last assistant message
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        const assistantBubbles = document.querySelectorAll('.assistant-bubble .markdown-body');
+        if (assistantBubbles.length > 0) {
+          const lastBubble = assistantBubbles[assistantBubbles.length - 1];
+          navigator.clipboard.writeText(lastBubble.innerText).then(() => showNotification("Copied last response!"));
+        }
+        return;
+      }
+
       // Ctrl+N -> New Conversation
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n") {
         e.preventDefault();
@@ -245,6 +256,18 @@
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleSend();
+      } else if (e.key === "ArrowUp" && chatTextarea.value.trim() === "") {
+        e.preventDefault();
+        const userBubbles = document.querySelectorAll('.user-bubble');
+        if (userBubbles.length > 0) {
+          const lastUserBubble = userBubbles[userBubbles.length - 1];
+          let text = "";
+          for (const node of lastUserBubble.childNodes) {
+             if (node.nodeType === Node.TEXT_NODE) text += node.textContent;
+          }
+          chatTextarea.value = text.trim();
+          autoResizeTextarea();
+        }
       }
     });
 
@@ -581,7 +604,11 @@
     const dockTokenEl = document.getElementById("dock-token-info");
     if (!dockTokenEl) return;
     if (metrics && metrics.total_tokens && metrics.context_length) {
-      dockTokenEl.textContent = `🧠 Context: ${metrics.total_tokens.toLocaleString()} / ${metrics.context_length.toLocaleString()} tokens (${metrics.context_used_pct}%)`;
+      let text = `🧠 Context: ${metrics.total_tokens.toLocaleString()} / ${metrics.context_length.toLocaleString()} tokens (${metrics.context_used_pct}%)`;
+      if (metrics.tokens_per_second > 0 && metrics.tokens_per_second < 5) {
+        text += ` • 🐢 High memory usage - Offloading to CPU`;
+      }
+      dockTokenEl.textContent = text;
       dockTokenEl.style.display = "inline-flex";
     } else {
       dockTokenEl.style.display = "none";
