@@ -248,6 +248,16 @@
       }
     });
 
+    // Focus textarea when clicking anywhere in the input container
+    const inputBoxWrapper = document.querySelector(".input-box-wrapper");
+    if (inputBoxWrapper) {
+      inputBoxWrapper.addEventListener("click", (e) => {
+        if (!e.target.closest("button") && !e.target.closest("input") && !e.target.closest(".attachment-chip")) {
+          chatTextarea.focus();
+        }
+      });
+    }
+
     // Large Paste Auto-Collapse (>600 characters)
     chatTextarea.addEventListener("paste", handlePasteLargeText);
 
@@ -264,32 +274,42 @@
     attachFileBtn.addEventListener("click", handleFileAttachment);
 
     // Native Drag and Drop for Files (Supports Wayland GTK File Managers like Nautilus & Dolphin)
-    ["dragenter", "dragover"].forEach((evt) => {
-      window.addEventListener(evt, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.dataTransfer) {
-          e.dataTransfer.dropEffect = "copy";
-        }
-        const wrapper = document.querySelector(".input-box-wrapper");
-        if (wrapper) wrapper.classList.add("drag-over");
-      }, false);
-    });
+    const dropOverlay = document.getElementById("drop-overlay");
+    let dragCounter = 0;
 
-    ["dragleave"].forEach((evt) => {
-      window.addEventListener(evt, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const wrapper = document.querySelector(".input-box-wrapper");
-        if (wrapper) wrapper.classList.remove("drag-over");
-      }, false);
-    });
+    window.addEventListener("dragenter", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter++;
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "copy";
+      }
+      if (dropOverlay) dropOverlay.classList.add("active");
+    }, false);
+
+    window.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "copy";
+      }
+    }, false);
+
+    window.addEventListener("dragleave", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter--;
+      if (dragCounter <= 0) {
+        dragCounter = 0;
+        if (dropOverlay) dropOverlay.classList.remove("active");
+      }
+    }, false);
 
     window.addEventListener("drop", async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const wrapper = document.querySelector(".input-box-wrapper");
-      if (wrapper) wrapper.classList.remove("drag-over");
+      dragCounter = 0;
+      if (dropOverlay) dropOverlay.classList.remove("active");
 
       // 1. Standard HTML5 FileList (browsers, direct file drops)
       const files = e.dataTransfer ? e.dataTransfer.files : [];
@@ -307,7 +327,11 @@
         for (const rawLine of lines) {
           let line = rawLine.trim();
           if (!line || line.startsWith("#")) continue;
-          if (line.startsWith("file://")) {
+          if (line.startsWith("file://localhost/")) {
+            line = decodeURIComponent(line.slice(16));
+          } else if (line.startsWith("file:///")) {
+            line = decodeURIComponent(line.slice(7));
+          } else if (line.startsWith("file://")) {
             line = decodeURIComponent(line.slice(7));
           }
           if (line && window.pywebview) {
@@ -322,7 +346,7 @@
           }
         }
       }
-    });
+    }, false);
 
     // Quick Prompts on Welcome Screen
     document.querySelectorAll(".prompt-chip").forEach((chip) => {
@@ -422,29 +446,52 @@
       }
 
       sessions.forEach((s) => {
+        const isPinned = !!s.is_pinned;
         const item = document.createElement("div");
-        item.className = `session-item ${s.id === state.currentSessionId ? "active" : ""}`;
+        item.className = `session-item ${s.id === state.currentSessionId ? "active" : ""} ${isPinned ? "is-pinned" : ""}`;
         item.dataset.id = s.id;
 
         const nameSpan = document.createElement("span");
         nameSpan.className = "session-name";
         nameSpan.textContent = s.title;
 
-        const delBtn = document.createElement("button");
-        delBtn.className = "session-del-btn";
-        delBtn.innerHTML = `✕`;
-        delBtn.title = "Delete chat";
-        delBtn.addEventListener("click", async (e) => {
+        const actionsDiv = document.createElement("div");
+        actionsDiv.className = "session-actions";
+
+        // Pin / Unpin Button
+        const pinBtn = document.createElement("button");
+        pinBtn.className = `session-action-btn session-pin-btn ${isPinned ? "is-pinned" : ""}`;
+        pinBtn.title = isPinned ? "Unpin chat" : "Pin chat to top";
+        pinBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="${isPinned ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-2l-2-3V5a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7l-2 3v2z"></path></svg>`;
+        pinBtn.addEventListener("click", async (e) => {
           e.stopPropagation();
-          await window.pywebview.api.delete_session(s.id);
-          if (state.currentSessionId === s.id) {
-            state.currentSessionId = null;
+          if (window.pywebview) {
+            await window.pywebview.api.toggle_pin_session(s.id);
+            await loadSessions();
           }
-          await loadSessions();
         });
 
+        // Delete Button
+        const delBtn = document.createElement("button");
+        delBtn.className = "session-action-btn session-del-btn";
+        delBtn.title = "Delete chat";
+        delBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+        delBtn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          if (window.pywebview) {
+            await window.pywebview.api.delete_session(s.id);
+            if (state.currentSessionId === s.id) {
+              state.currentSessionId = null;
+            }
+            await loadSessions();
+          }
+        });
+
+        actionsDiv.appendChild(pinBtn);
+        actionsDiv.appendChild(delBtn);
+
         item.appendChild(nameSpan);
-        item.appendChild(delBtn);
+        item.appendChild(actionsDiv);
 
         item.addEventListener("click", () => switchSession(s.id));
         sessionsList.appendChild(item);
@@ -1060,7 +1107,7 @@
 
   function autoResizeTextarea() {
     chatTextarea.style.height = "auto";
-    chatTextarea.style.height = Math.min(chatTextarea.scrollHeight, 180) + "px";
+    chatTextarea.style.height = Math.max(52, Math.min(chatTextarea.scrollHeight, 180)) + "px";
   }
 
   // Smart auto-scrolling: detects user scrolling up

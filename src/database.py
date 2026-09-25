@@ -38,10 +38,15 @@ class Database:
                     title TEXT NOT NULL,
                     model TEXT NOT NULL,
                     thinking_level TEXT DEFAULT 'med',
+                    is_pinned INTEGER DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+            try:
+                cursor.execute("ALTER TABLE sessions ADD COLUMN is_pinned INTEGER DEFAULT 0")
+            except Exception:
+                pass
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS messages (
                     id TEXT PRIMARY KEY,
@@ -96,15 +101,28 @@ class Database:
     def list_sessions(self) -> List[Dict[str, Any]]:
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT id, title, model, thinking_level, created_at, updated_at FROM sessions ORDER BY updated_at DESC")
+            cursor.execute("SELECT id, title, model, thinking_level, is_pinned, created_at, updated_at FROM sessions ORDER BY is_pinned DESC, updated_at DESC")
             return [dict(row) for row in cursor.fetchall()]
 
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT id, title, model, thinking_level, created_at, updated_at FROM sessions WHERE id = ?", (session_id,))
+            cursor.execute("SELECT id, title, model, thinking_level, is_pinned, created_at, updated_at FROM sessions WHERE id = ?", (session_id,))
             row = cursor.fetchone()
             return dict(row) if row else None
+
+    def toggle_pin_session(self, session_id: str) -> bool:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT is_pinned FROM sessions WHERE id = ?", (session_id,))
+            row = cursor.fetchone()
+            if not row:
+                return False
+            curr = row["is_pinned"] if "is_pinned" in row.keys() else 0
+            new_val = 0 if curr else 1
+            cursor.execute("UPDATE sessions SET is_pinned = ? WHERE id = ?", (new_val, session_id))
+            conn.commit()
+            return bool(new_val)
 
     def update_session(self, session_id: str, title: Optional[str] = None, model: Optional[str] = None, thinking_level: Optional[str] = None):
         updates = []

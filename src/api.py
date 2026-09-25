@@ -95,6 +95,9 @@ class OlluxAPI:
     def delete_session(self, session_id: str) -> bool:
         return self.db.delete_session(session_id)
 
+    def toggle_pin_session(self, session_id: str) -> bool:
+        return self.db.toggle_pin_session(session_id)
+
     def export_session_markdown(self, session_id: str) -> Dict[str, Any]:
         """Export session history as a beautifully formatted Markdown file."""
         if not self.window:
@@ -107,8 +110,9 @@ class OlluxAPI:
         title = session.get("title", "Conversation")
         clean_title = "".join(c for c in title if c.isalnum() or c in " _-").strip() or "conversation"
 
+        dialog_type = getattr(getattr(webview, "FileDialog", None), "SAVE", getattr(webview, "SAVE_DIALOG", None))
         filepath = self.window.create_file_dialog(
-            webview.SAVE_DIALOG,
+            dialog_type,
             save_filename=f"{clean_title}.md",
             file_types=('Markdown (*.md)', 'All files (*.*)')
         )
@@ -158,8 +162,9 @@ class OlluxAPI:
         """Show native GTK file picker dialog."""
         if not self.window:
             return []
+        dialog_type = getattr(getattr(webview, "FileDialog", None), "OPEN", getattr(webview, "OPEN_DIALOG", None))
         result = self.window.create_file_dialog(
-            webview.OPEN_DIALOG,
+            dialog_type,
             allow_multiple=True,
             file_types=('All files (*.*)', 'PDF documents (*.pdf)', 'Image files (*.png;*.jpg;*.jpeg;*.webp)', 'Code and Text (*.txt;*.py;*.js;*.md;*.json;*.cpp;*.c;*.sh)')
         )

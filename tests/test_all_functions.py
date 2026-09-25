@@ -32,6 +32,14 @@ def test_every_function():
     # get_session
     sess = db.get_session(s_id)
     assert sess["title"] == "Func Test Chat"
+    assert sess["is_pinned"] == 0
+    # toggle_pin_session
+    pin_res = db.toggle_pin_session(s_id)
+    assert pin_res is True
+    assert db.get_session(s_id)["is_pinned"] == 1
+    unpin_res = db.toggle_pin_session(s_id)
+    assert unpin_res is False
+    assert db.get_session(s_id)["is_pinned"] == 0
     # update_session
     db.update_session(s_id, title="Renamed Chat", model="qwen2.5:7b", thinking_level="high")
     sess_updated = db.get_session(s_id)
