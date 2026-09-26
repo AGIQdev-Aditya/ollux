@@ -100,7 +100,7 @@
           <div class="code-wrapper">
             <div class="code-header">
               <span class="code-lang">${displayLang}</span>
-              <button class="code-copy-btn" onclick="window.copyCodeBlock(this)">Copy</button>
+              <button class="code-copy-btn" type="button">Copy</button>
             </div>
             <pre><code class="hljs ${lang ? 'language-' + lang : ''}">${highlighted}</code></pre>
           </div>
@@ -110,8 +110,10 @@
     marked.use({ renderer: customRenderer });
   }
 
-  // Global Code Copy Function
-  window.copyCodeBlock = function (btn) {
+  // Global Event Delegation for Copy Buttons (Zero Inline Scripting)
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".code-copy-btn");
+    if (!btn) return;
     const wrapper = btn.closest(".code-wrapper");
     if (!wrapper) return;
     const codeEl = wrapper.querySelector("code");
@@ -120,7 +122,7 @@
       btn.textContent = "Copied!";
       setTimeout(() => (btn.textContent = "Copy"), 2000);
     });
-  };
+  });
 
   // --- Initialize when PyWebView is ready ---
   window.addEventListener("pywebviewready", initApp);
@@ -1419,10 +1421,12 @@
       html = escapeHtml(text).replace(/\n/g, "<br>");
     }
 
+    // Strict DOMPurify sanitization: Explicitly disallow inline event handlers
     if (typeof DOMPurify !== "undefined") {
       html = DOMPurify.sanitize(html, {
         ADD_TAGS: ["button"],
-        ADD_ATTR: ["onclick", "class"]
+        ADD_ATTR: ["class", "data-lang", "type"],
+        FORBID_ATTR: ["onclick", "onerror", "onload", "onmouseover"]
       });
     }
 

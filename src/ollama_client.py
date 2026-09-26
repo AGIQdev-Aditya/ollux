@@ -114,7 +114,8 @@ class OllamaClient:
         on_chunk: Optional[Callable[[Dict[str, Any]], None]] = None,
         on_complete: Optional[Callable[[Dict[str, Any]], None]] = None,
         on_error: Optional[Callable[[str], None]] = None,
-        stop_event: Optional[Any] = None
+        stop_event: Optional[Any] = None,
+        on_request_ready: Optional[Callable[[requests.Response], None]] = None
     ):
         """
         Stream a chat response from Ollama.
@@ -142,6 +143,9 @@ class OllamaClient:
             start_wall_time = time.time()
             r = requests.post(f"{self.host}/api/chat", json=payload, stream=True, timeout=300)
             
+            if on_request_ready and callable(on_request_ready):
+                on_request_ready(r)
+
             if r.status_code != 200:
                 if on_error:
                     on_error(f"Ollama API returned HTTP {r.status_code}: {r.text}")

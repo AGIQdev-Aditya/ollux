@@ -25,19 +25,30 @@ class OlluxAPI:
         self.window = None
         self._is_generating = False
         self._stream_lock = threading.Lock()
-        self._stop_event = threading.Event()
+        self._generation_counter = 0
+        self._active_stop_event: Optional[threading.Event] = None
+        self._active_response: Optional[Any] = None
 
     @property
     def _stop_requested(self) -> bool:
         """Compatibility property reflecting stop event state."""
-        return self._stop_event.is_set()
+        return self._active_stop_event.is_set() if self._active_stop_event else False
 
     @_stop_requested.setter
     def _stop_requested(self, val: bool):
         if val:
-            self._stop_event.set()
+            if self._active_stop_event:
+                self._active_stop_event.set()
         else:
-            self._stop_event.clear()
+            if self._active_stop_event:
+                self._active_stop_event.clear()
+
+    @property
+    def _stop_event(self) -> threading.Event:
+        """Compatibility property for older tests that inspect _stop_event directly."""
+        if self._active_stop_event is None:
+            self._active_stop_event = threading.Event()
+        return self._active_stop_event
 
     def set_window(self, window):
         self.window = window
@@ -205,8 +216,15 @@ class OlluxAPI:
 
     def stop_generation(self):
         """Signal generation loop to halt and immediately abort HTTP stream."""
-        self._stop_event.set()
         with self._stream_lock:
+            if self._active_stop_event:
+                self._active_stop_event.set()
+            if self._active_response:
+                try:
+                    self._active_response.close()
+                except Exception:
+                    pass
+                self._active_response = None
             self._is_generating = False
         return True
 
@@ -227,7 +245,11 @@ class OlluxAPI:
             if self._is_generating:
                 return {"status": "busy"}
             self._is_generating = True
-            self._stop_event.clear()
+            self._generation_counter += 1
+            current_gen_id = self._generation_counter
+            local_stop_event = threading.Event()
+            self._active_stop_event = local_stop_event
+            self._active_response = None
 
         attachments = attachments or []
 
@@ -323,6 +345,16 @@ class OlluxAPI:
             chunk_lock = threading.Lock()
             last_flush = [time.time()]
 
+            def on_request_ready(resp):
+                with self._stream_lock:
+                    if current_gen_id == self._generation_counter:
+                        self._active_response = resp
+                        if local_stop_event.is_set():
+                            try:
+                                resp.close()
+                            except Exception:
+                                pass
+
             def flush_chunks():
                 with chunk_lock:
                     if not chunk_buffer:
@@ -331,12 +363,12 @@ class OlluxAPI:
                     chunk_buffer.clear()
                     last_flush[0] = time.time()
 
-                if self.window and not self._stop_event.is_set():
+                if self.window and not local_stop_event.is_set():
                     payload = json.dumps(batch)
                     self.window.evaluate_js(f"window.onStreamBatch({payload})")
 
             def on_chunk(chunk_data):
-                if self._stop_event.is_set():
+                if local_stop_event.is_set():
                     return
                 chunk_data["session_id"] = session_id
                 if chunk_data["type"] == "content":
@@ -357,32 +389,38 @@ class OlluxAPI:
                 full_content = "".join(accumulated_content)
                 full_thinking = "".join(accumulated_thinking)
 
-                # Store assistant response in DB
-                self.db.add_message(
-                    session_id=session_id,
-                    role="assistant",
-                    content=full_content,
-                    thinking_content=full_thinking,
-                    metrics=metrics
-                )
+                # Guard: Do not write message if session was deleted during streaming
+                if self.db.get_session(session_id) is not None:
+                    self.db.add_message(
+                        session_id=session_id,
+                        role="assistant",
+                        content=full_content,
+                        thinking_content=full_thinking,
+                        metrics=metrics
+                    )
 
                 if self.window:
                     payload = json.dumps({"session_id": session_id, "metrics": metrics})
                     self.window.evaluate_js(f"window.onStreamComplete({payload})")
 
                 with self._stream_lock:
-                    self._is_generating = False
+                    if self._generation_counter == current_gen_id:
+                        self._is_generating = False
 
             def on_error(err_str):
                 if self.window:
                     payload = json.dumps({"session_id": session_id, "error": str(err_str)})
                     self.window.evaluate_js(f"window.onStreamError({payload})")
                 with self._stream_lock:
-                    self._is_generating = False
+                    if self._generation_counter == current_gen_id:
+                        self._is_generating = False
 
             # Launch streaming
             try:
-                target_num_ctx = max(2048, estimated_attachment_tokens + 1024) if estimated_attachment_tokens > 0 else None
+                model_max_ctx = self.client.get_model_context_length(model)
+                target_num_ctx = None
+                if estimated_attachment_tokens > 0:
+                    target_num_ctx = min(model_max_ctx, max(2048, estimated_attachment_tokens + 1024))
                 
                 self.client.stream_chat(
                     model=model,
@@ -392,11 +430,15 @@ class OlluxAPI:
                     on_chunk=on_chunk,
                     on_complete=on_complete,
                     on_error=on_error,
-                    stop_event=self._stop_event
+                    stop_event=local_stop_event,
+                    on_request_ready=on_request_ready
                 )
             finally:
                 with self._stream_lock:
-                    self._is_generating = False
+                    if self._generation_counter == current_gen_id:
+                        self._is_generating = False
+                        self._active_stop_event = None
+                        self._active_response = None
                 
                 # Trim WebKit memory
                 try:

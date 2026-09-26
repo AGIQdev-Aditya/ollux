@@ -103,6 +103,7 @@ def clean_search_query(user_query: str, history: Optional[List[Dict[str, Any]]] 
     return query
 
 
+_MAX_SEARCH_CACHE_SIZE = 100
 _search_cache: Dict[str, Any] = {}
 
 
@@ -141,6 +142,9 @@ def perform_web_search(query: str, max_results: int = 5) -> List[Dict[str, str]]
                         "body": body
                     })
             if results:
+                if len(_search_cache) >= _MAX_SEARCH_CACHE_SIZE:
+                    oldest_key = min(_search_cache.keys(), key=lambda k: _search_cache[k]["time"])
+                    _search_cache.pop(oldest_key, None)
                 _search_cache[cache_key] = {"results": results, "time": now}
                 return results
     except Exception:
@@ -160,6 +164,10 @@ def perform_web_search(query: str, max_results: int = 5) -> List[Dict[str, str]]
                         "body": body
                     })
             if results:
+                if len(_search_cache) >= _MAX_SEARCH_CACHE_SIZE:
+                    oldest_key = min(_search_cache.keys(), key=lambda k: _search_cache[k]["time"])
+                    _search_cache.pop(oldest_key, None)
+                _search_cache[cache_key] = {"results": results, "time": now}
                 return results
     except Exception:
         pass
