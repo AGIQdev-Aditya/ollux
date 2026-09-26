@@ -12,6 +12,8 @@
     thinkingLevel: "med",
     webSearchEnabled: false,
     isGenerating: false,
+    backgroundSessions: new Set(),
+    pendingSwitchAction: null,
     stagedAttachments: [],
     activeAssistantBubble: null,
     accumulatedContent: "",
@@ -40,6 +42,14 @@
   const sendBtn = document.getElementById("send-btn");
   const sendIcon = sendBtn.querySelector(".send-icon");
   const stopIcon = sendBtn.querySelector(".stop-icon");
+
+  // Switch Confirmation Modal Elements
+  const switchConfirmModal = document.getElementById("switch-confirm-modal");
+  const closeSwitchModalBtn = document.getElementById("close-switch-modal");
+  const switchStopBtn = document.getElementById("switch-stop-btn");
+  const switchBgBtn = document.getElementById("switch-bg-btn");
+  const switchCancelBtn = document.getElementById("switch-cancel-btn");
+  const generatingChatName = document.getElementById("generating-chat-name");
 
   function showNotification(text) {
     const existing = document.querySelector(".toast-notification");
@@ -170,6 +180,10 @@
 
       // Escape -> Close modal, cancel search, or halt generation
       if (e.key === "Escape") {
+        if (switchConfirmModal && switchConfirmModal.classList.contains("open")) {
+          closeSwitchModal();
+          return;
+        }
         if (modelModal.classList.contains("open")) {
           modelModal.classList.remove("open");
           return;
@@ -286,8 +300,15 @@
 
     // Send / Stop Button
     sendBtn.addEventListener("click", () => {
-      if (state.isGenerating) {
+      if (state.isGenerating || (state.currentSessionId && state.backgroundSessions.has(state.currentSessionId))) {
         handleStop();
+        if (state.currentSessionId && state.backgroundSessions.has(state.currentSessionId)) {
+          state.backgroundSessions.delete(state.currentSessionId);
+          const el = document.querySelector(`.session-item[data-id="${state.currentSessionId}"]`);
+          if (el) el.classList.remove("generating");
+          updateSendButtonState(false);
+          showNotification("Stopped generation.");
+        }
       } else {
         handleSend();
       }
@@ -430,6 +451,51 @@
     });
 
     pullModelBtn.addEventListener("click", handlePullModel);
+
+    // Switch Confirmation Modal
+    if (closeSwitchModalBtn) {
+      closeSwitchModalBtn.addEventListener("click", closeSwitchModal);
+    }
+    if (switchCancelBtn) {
+      switchCancelBtn.addEventListener("click", closeSwitchModal);
+    }
+    if (switchConfirmModal) {
+      switchConfirmModal.addEventListener("click", (e) => {
+        if (e.target === switchConfirmModal) closeSwitchModal();
+      });
+    }
+
+    if (switchStopBtn) {
+      switchStopBtn.addEventListener("click", async () => {
+        await handleStop();
+        const action = state.pendingSwitchAction;
+        closeSwitchModal();
+        if (action) {
+          state.pendingSwitchAction = action;
+          await executePendingSwitch();
+        }
+      });
+    }
+
+    if (switchBgBtn) {
+      switchBgBtn.addEventListener("click", async () => {
+        if (state.currentSessionId) {
+          state.backgroundSessions.add(state.currentSessionId);
+          const activeEl = document.querySelector(`.session-item[data-id="${state.currentSessionId}"]`);
+          if (activeEl) activeEl.classList.add("generating");
+        }
+        state.isGenerating = false;
+        updateSendButtonState(false);
+        state.activeAssistantBubble = null;
+        showNotification("Generation continuing in background ⚡");
+        const action = state.pendingSwitchAction;
+        closeSwitchModal();
+        if (action) {
+          state.pendingSwitchAction = action;
+          await executePendingSwitch();
+        }
+      });
+    }
   }
 
   // --- Backend Sync Functions ---
@@ -505,8 +571,9 @@
 
       sessions.forEach((s) => {
         const isPinned = !!s.is_pinned;
+        const isGeneratingBg = state.backgroundSessions.has(s.id);
         const item = document.createElement("div");
-        item.className = `session-item ${s.id === state.currentSessionId ? "active" : ""} ${isPinned ? "is-pinned" : ""}`;
+        item.className = `session-item ${s.id === state.currentSessionId ? "active" : ""} ${isPinned ? "is-pinned" : ""} ${isGeneratingBg ? "generating" : ""}`;
         item.dataset.id = s.id;
 
         const nameSpan = document.createElement("span");
@@ -536,6 +603,10 @@
         delBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
         delBtn.addEventListener("click", async (e) => {
           e.stopPropagation();
+          if (state.backgroundSessions.has(s.id)) {
+            state.backgroundSessions.delete(s.id);
+            await window.pywebview.api.stop_generation();
+          }
           if (window.pywebview) {
             await window.pywebview.api.delete_session(s.id);
             if (state.currentSessionId === s.id) {
@@ -557,26 +628,79 @@
 
       // Select first session if none active
       if (!state.currentSessionId && sessions.length > 0) {
-        await switchSession(sessions[0].id);
+        await performSwitchSession(sessions[0].id);
       }
     } catch (err) {
       console.error("Failed to load sessions:", err);
     }
   }
 
+  function promptSwitchConfirmation(action) {
+    state.pendingSwitchAction = action;
+    const activeItem = document.querySelector(`.session-item[data-id="${state.currentSessionId}"] .session-name`);
+    const chatName = activeItem ? activeItem.textContent.trim() : (chatTitle.textContent.trim() || "this chat");
+    if (generatingChatName) {
+      generatingChatName.textContent = `"${chatName}"`;
+    }
+    if (switchConfirmModal) {
+      switchConfirmModal.classList.add("open");
+    }
+  }
+
+  function closeSwitchModal() {
+    state.pendingSwitchAction = null;
+    if (switchConfirmModal) {
+      switchConfirmModal.classList.remove("open");
+    }
+  }
+
+  async function executePendingSwitch() {
+    const action = state.pendingSwitchAction;
+    state.pendingSwitchAction = null;
+    if (!action) return;
+    if (action.type === "switch") {
+      await performSwitchSession(action.sessionId);
+    } else if (action.type === "new") {
+      if (!window.pywebview) return;
+      const newId = await window.pywebview.api.create_session("New Chat", state.currentModel, state.thinkingLevel);
+      state.currentSessionId = newId;
+      await loadSessions();
+      await performSwitchSession(newId);
+    }
+  }
+
   async function createNewChat() {
+    if (state.isGenerating) {
+      promptSwitchConfirmation({ type: "new" });
+      return;
+    }
     if (!window.pywebview) return;
     const newId = await window.pywebview.api.create_session("New Chat", state.currentModel, state.thinkingLevel);
     state.currentSessionId = newId;
     await loadSessions();
-    await switchSession(newId);
+    await performSwitchSession(newId);
   }
 
   async function switchSession(sessionId) {
+    if (sessionId === state.currentSessionId) return;
+    if (state.isGenerating) {
+      promptSwitchConfirmation({ type: "switch", sessionId: sessionId });
+      return;
+    }
+    await performSwitchSession(sessionId);
+  }
+
+  async function performSwitchSession(sessionId) {
     state.currentSessionId = sessionId;
     document.querySelectorAll(".session-item").forEach((el) => {
       el.classList.toggle("active", el.dataset.id === sessionId);
     });
+
+    if (state.backgroundSessions.has(sessionId)) {
+      updateSendButtonState(true);
+    } else {
+      updateSendButtonState(state.isGenerating);
+    }
 
     if (!window.pywebview) return;
     const data = await window.pywebview.api.get_session_data(sessionId);
@@ -900,6 +1024,10 @@
     const content = chatTextarea.value.trim();
     if (!content && state.stagedAttachments.length === 0) return;
     if (state.isGenerating || !window.pywebview) return;
+    if (state.backgroundSessions.size > 0) {
+      showNotification("⚠️ An AI response is generating in the background. Please wait or stop it.");
+      return;
+    }
 
     const attachmentsToSend = [...state.stagedAttachments];
     state.stagedAttachments = [];
@@ -1007,7 +1135,12 @@
   }
 
   function handleChunk(chunk) {
-    if (!state.activeAssistantBubble || !chunk) return;
+    if (!chunk) return;
+    if (chunk.session_id && chunk.session_id !== state.currentSessionId) {
+      // Chunk belongs to background session, do not update active DOM bubble
+      return;
+    }
+    if (!state.activeAssistantBubble) return;
 
     if (chunk.type === "thinking") {
       if (!state.accumulatedContent && state.activeAssistantBubble.contentDiv.textContent.includes("Searching web")) {
@@ -1035,8 +1168,41 @@
     }
   };
 
-  window.onStreamComplete = function (metrics) {
-    if (!state.activeAssistantBubble) return;
+  window.onStreamComplete = function (payload) {
+    let sessionId = null;
+    let metrics = payload;
+    if (payload && typeof payload === "object" && "session_id" in payload) {
+      sessionId = payload.session_id;
+      metrics = payload.metrics;
+    }
+
+    // Handle background session completion
+    if (sessionId && state.backgroundSessions.has(sessionId)) {
+      state.backgroundSessions.delete(sessionId);
+      const el = document.querySelector(`.session-item[data-id="${sessionId}"]`);
+      if (el) el.classList.remove("generating");
+      const title = el ? el.querySelector(".session-name").textContent.trim() : "Chat";
+      showNotification(`✓ Response completed in "${title}"`);
+
+      // If user currently switched to that session, re-fetch and render its complete messages
+      if (state.currentSessionId === sessionId) {
+        updateSendButtonState(false);
+        if (window.pywebview) {
+          window.pywebview.api.get_session_data(sessionId).then((data) => {
+            if (data && data.messages) {
+              renderMessages(data.messages);
+            }
+          });
+        }
+      }
+      return;
+    }
+
+    if (!state.activeAssistantBubble) {
+      state.isGenerating = false;
+      updateSendButtonState(false);
+      return;
+    }
 
     // Remove cursor cleanly
     state.activeAssistantBubble.contentDiv.innerHTML = renderMarkdown(state.accumulatedContent, false);
@@ -1082,8 +1248,26 @@
   };
 
   window.onStreamError = function (err) {
+    let sessionId = null;
+    let errMsg = err;
+    if (err && typeof err === "object" && "session_id" in err) {
+      sessionId = err.session_id;
+      errMsg = err.error || "Unknown stream error";
+    }
+
+    if (sessionId && state.backgroundSessions.has(sessionId)) {
+      state.backgroundSessions.delete(sessionId);
+      const el = document.querySelector(`.session-item[data-id="${sessionId}"]`);
+      if (el) el.classList.remove("generating");
+      showNotification(`⚠️ Background error: ${errMsg}`);
+      if (state.currentSessionId === sessionId) {
+        updateSendButtonState(false);
+      }
+      return;
+    }
+
     if (state.activeAssistantBubble) {
-      state.activeAssistantBubble.contentDiv.innerHTML += `<div style="color: var(--accent-red); margin-top: 8px;">⚠️ ${escapeHtml(err)}</div>`;
+      state.activeAssistantBubble.contentDiv.innerHTML += `<div style="color: var(--accent-red); margin-top: 8px;">⚠️ ${escapeHtml(errMsg)}</div>`;
     }
     state.isGenerating = false;
     updateSendButtonState(false);

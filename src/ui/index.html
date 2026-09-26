@@ -226,6 +226,33 @@
       </div>
     </div>
 
+    <!-- SWITCH CONVERSATION CONFIRMATION MODAL -->
+    <div class="modal-backdrop" id="switch-confirm-modal">
+      <div class="modal-card modal-confirm-card">
+        <div class="modal-header">
+          <h3>Generation in Progress</h3>
+          <button class="close-modal-btn" id="close-switch-modal">&times;</button>
+        </div>
+        <div class="modal-body confirm-body">
+          <p class="confirm-message">
+            An AI response is actively generating in <strong id="generating-chat-name">this chat</strong>.
+            What would you like to do?
+          </p>
+          <div class="confirm-actions">
+            <button class="btn btn-danger" id="switch-stop-btn">
+              ⏹ Stop Generation & Switch
+            </button>
+            <button class="btn btn-secondary" id="switch-bg-btn">
+              🏃 Run in Background & Switch
+            </button>
+            <button class="btn btn-ghost" id="switch-cancel-btn">
+              Keep Watching (Cancel)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- FULLSCREEN DRAG & DROP OVERLAY (Wayland / Linux Native File Dropping) -->
     <div class="drop-overlay" id="drop-overlay">
       <div class="drop-overlay-box">

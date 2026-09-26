@@ -5,6 +5,7 @@ Includes query sanitization, greeting bypass, and structured ground-truth format
 """
 
 import re
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 GREETING_PATTERNS = [
@@ -36,12 +37,31 @@ TYPO_FIXES = {
     r"\btaht\b": "that",
     r"\bwich\b": "which",
     r"\biphne\b": "iphone",
-    r"\bmoedl\b": "model"
+    r"\bmoedl\b": "model",
+    r"\bserach\b": "search",
+    r"\bchek\b": "check",
+    r"\bplewase\b": "please",
+    r"\bplz\b": "please",
+    r"\brn\b": "current",
 }
 
+DIRECTIVE_PATTERNS = [
+    r"\b(check|search|look\s*up|verify|find|google|browse)\s*(the\s+web|online|internet)?\b",
+    r"\b(and\s+)?(then\s+)?tell\s+me(\s+about)?\b",
+    r"\b(can\s+you\s+)?(tell\s+me|show\s+me|give\s+me)\b",
+    r"\bwhat\s+(is|are)\s+(the\s+)?\b",
+    r"\bdo\s+you\s+know\b",
+    r"\bplease\b",
+    r"^\s*so\s+",
+]
 
-def clean_search_query(user_query: str) -> Optional[str]:
-    """Sanitize and formulate a high-yield web search query from user prompt."""
+
+def clean_search_query(user_query: str, history: Optional[List[Dict[str, Any]]] = None) -> Optional[str]:
+    """
+    Sanitize and formulate a high-yield web search query from user prompt.
+    If the prompt is a follow-up directive (e.g. 'check the web and tell me'),
+    intelligently resolves the subject from conversation history.
+    """
     if should_skip_web_search(user_query):
         return None
 
@@ -51,28 +71,36 @@ def clean_search_query(user_query: str) -> Optional[str]:
     for pattern, replacement in TYPO_FIXES.items():
         query = re.sub(pattern, replacement, query, flags=re.IGNORECASE)
 
-    # Strip conversational filler prefixes
-    filler_patterns = [
-        r"^(can you\s+)?tell me\s+(about\s+)?",
-        r"^(what|who|where|when|which)\s+is\s+(the\s+)?",
-        r"^(what|who|where|when|which)\s+are\s+(the\s+)?",
-        r"^(do you know\s+)?what\s+(is\s+)?",
-        r"^search\s+(the\s+web\s+for\s+|for\s+)?",
-        r"^look\s+up\s+",
-        r"^please\s+",
-    ]
-    for pat in filler_patterns:
-        query = re.sub(pat, "", query, flags=re.IGNORECASE).strip()
+    # Strip conversational and search directives
+    for pat in DIRECTIVE_PATTERNS:
+        query = re.sub(pat, " ", query, flags=re.IGNORECASE).strip()
 
-    # Remove trailing punctuation
-    query = query.strip("?!.,;:")
+    # Normalize whitespace and trailing punctuation
+    query = re.sub(r"[?!.,;:]+", " ", query).strip()
+    query = re.sub(r"\s+", " ", query).strip()
 
-    # If asking for "latest" or "newest", ensure context keywords are included
-    if "latest" in query or "newest" in query or "recent" in query:
+    # If empty or only generic filler remains, resolve subject from previous user turns
+    if len(query) < 3 or query in ["it", "that", "them", "about that", "again", "now", "current"]:
+        if history:
+            for msg in reversed(history):
+                if msg.get("role") == "user":
+                    prev_clean = clean_search_query(msg.get("content", ""))
+                    if prev_clean and len(prev_clean) >= 3:
+                        query = f"{prev_clean} {query}".strip()
+                        break
+
+    if not query or len(query) < 2:
+        query = user_query.strip()
+
+    # If asking for "latest" or "newest", add current year and brand context
+    if any(k in query for k in ["latest", "newest", "current", "recent"]):
+        curr_year = str(datetime.now().year)
+        if curr_year not in query:
+            query = f"{query} {curr_year}"
         if "iphone" in query and "apple" not in query:
             query = f"{query} apple"
 
-    return query if len(query) >= 3 else user_query.strip()
+    return query
 
 
 _search_cache: Dict[str, Any] = {}
@@ -146,9 +174,14 @@ def format_search_context(query: str, results: List[Dict[str, str]], model_name:
 
     is_legacy_model = any(k in model_name.lower() for k in ["llama2", "alpaca", "vicuna"])
 
+    today_str = datetime.now().strftime("%A, %B %d, %Y")
+    current_year = datetime.now().year
+
     if is_legacy_model:
         # Simplified direct fact-injection format for smaller/legacy models
-        lines = ["Information from web search:"]
+        lines = [
+            f"Information from web search: (Current Date: {today_str})"
+        ]
         for idx, item in enumerate(results, 1):
             lines.append(f"- Fact {idx}: {item['title']} - {item['body']}")
         lines.append(f"\nQuestion: {query}")
@@ -158,15 +191,16 @@ def format_search_context(query: str, results: List[Dict[str, str]], model_name:
     # Modern instruct models (Qwen 2.5/3.8, Nemotron, Llama 3+, Mistral)
     context_lines = [
         f'=== REAL-TIME WEB SEARCH RESULTS FOR: "{query}" ===',
-        "You are an intelligent assistant answering with live web access.",
-        "Below are the verified search results. Base your answer directly on these facts.\n"
+        f"TEMPORAL ANCHOR: Today's Date is {today_str} (Year {current_year}).",
+        "You are an intelligent assistant with live web access.",
+        f"Below are the verified live search results. Prioritize the newest releases, models, and specifications from {current_year - 1}-{current_year}.\n"
     ]
     for idx, item in enumerate(results, 1):
         context_lines.append(f"[{idx}] Source: {item['title']}\nURL: {item['href']}\nContent: {item['body']}\n")
 
     context_lines.append(
         "=== INSTRUCTIONS ==="
-        "\n1. State the exact answer directly in your first sentence based on the search results."
+        "\n1. State the exact answer directly in your first sentence based on the live search results."
         "\n2. Highlight specific model names, version numbers, and release dates."
         "\n3. Keep your explanation concise and direct without unnecessary filler."
         "\n4. Cite your sources using [1], [2] brackets."

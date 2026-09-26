@@ -255,24 +255,28 @@ class OlluxAPI:
             search_context_prompt = ""
             search_sources = []
 
+            # Retrieve conversation history
+            history_rows = self.db.get_messages(session_id)
+            prev_history = history_rows[:-1] if history_rows else []
+
             # Privacy Web Search (DuckDuckGo)
             if web_search:
                 if not should_skip_web_search(content):
-                    cleaned_q = clean_search_query(content)
-                    if self.window:
-                        self.window.evaluate_js(f"window.onSearchStatus({json.dumps(f'Searching web for: \"{cleaned_q}\"...')})")
-                    try:
-                        search_sources = perform_web_search(content, max_results=5)
-                        if search_sources:
-                            search_context_prompt = format_search_context(content, search_sources, model)
-                            if self.window:
-                                sources_json = json.dumps(search_sources)
-                                self.window.evaluate_js(f"window.onWebSearchResults({sources_json})")
-                    except Exception as e:
-                        print("Search error:", e)
+                    cleaned_q = clean_search_query(content, history=prev_history)
+                    if cleaned_q:
+                        if self.window:
+                            self.window.evaluate_js(f"window.onSearchStatus({json.dumps(f'Searching web for: \"{cleaned_q}\"...')})")
+                        try:
+                            search_sources = perform_web_search(cleaned_q, max_results=5)
+                            if search_sources:
+                                search_context_prompt = format_search_context(cleaned_q, search_sources, model)
+                                if self.window:
+                                    sources_json = json.dumps(search_sources)
+                                    self.window.evaluate_js(f"window.onWebSearchResults({sources_json})")
+                        except Exception as e:
+                            print("Search error:", e)
 
             # Build messages history for Ollama
-            history_rows = self.db.get_messages(session_id)
             ollama_messages = []
 
             # If web search returned context, inject as system guidance (or prepend for legacy models)
@@ -289,7 +293,6 @@ class OlluxAPI:
                     block = f"--- Document Content: {name} ---\n{att['text']}\n--- End of {name} ---"
                     attached_text_blocks.append(block)
                     estimated_attachment_tokens += len(block) // 3
-                    
 
             for idx, msg in enumerate(history_rows):
                 msg_content = msg["content"]
@@ -335,6 +338,7 @@ class OlluxAPI:
             def on_chunk(chunk_data):
                 if self._stop_event.is_set():
                     return
+                chunk_data["session_id"] = session_id
                 if chunk_data["type"] == "content":
                     accumulated_content.append(chunk_data["token"])
                 elif chunk_data["type"] == "thinking":
@@ -363,7 +367,7 @@ class OlluxAPI:
                 )
 
                 if self.window:
-                    payload = json.dumps(metrics)
+                    payload = json.dumps({"session_id": session_id, "metrics": metrics})
                     self.window.evaluate_js(f"window.onStreamComplete({payload})")
 
                 with self._stream_lock:
@@ -371,7 +375,8 @@ class OlluxAPI:
 
             def on_error(err_str):
                 if self.window:
-                    self.window.evaluate_js(f"window.onStreamError({json.dumps(err_str)})")
+                    payload = json.dumps({"session_id": session_id, "error": str(err_str)})
+                    self.window.evaluate_js(f"window.onStreamError({payload})")
                 with self._stream_lock:
                     self._is_generating = False
 
