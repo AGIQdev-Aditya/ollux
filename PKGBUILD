@@ -20,7 +20,7 @@ optdepends=(
     'python-ddgs: Privacy-first web search integration'
 )
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('c858dc1745c82d94676a57d4756bda6459dacf6f9d359769ce7a5d00e62ee0bf')
+sha256sums=('33835e43c675b0be33585c3975b0fc912c4883abea5923efee1a1c2edd481f43')
 
 package() {
     install -d "$pkgdir/usr/share/$pkgname"
