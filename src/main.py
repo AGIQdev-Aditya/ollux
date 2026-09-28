@@ -97,7 +97,7 @@ def main():
         height=760,
         min_size=(740, 520),
         transparent=composited,
-        background_color=None if composited else "#0f121a",
+        background_color="#0f121a",
         text_select=True
     )
     api.set_window(window)
