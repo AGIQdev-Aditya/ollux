@@ -129,11 +129,11 @@ html, body {
 }
 
 /* ==========================================================================
-   SIDEBAR (Frosted macOS Translucent Glass)
+   SIDEBAR (Frosted Dark Glass)
    ========================================================================== */
 .sidebar {
   width: var(--sidebar-width);
-  background: rgba(14, 18, 27, 0.65);
+  background: rgba(12, 16, 26, 0.70);
   backdrop-filter: blur(28px) saturate(190%);
   -webkit-backdrop-filter: blur(28px) saturate(190%);
   border-right: 1px solid rgba(255, 255, 255, 0.07);
@@ -151,46 +151,13 @@ html, body {
 }
 
 .sidebar-header {
-  padding: 16px 16px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.sidebar-header-top {
+  padding: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  flex-shrink: 0;
 }
-
-/* Cute macOS Traffic Lights */
-.mac-traffic-lights {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 2px 0;
-}
-
-.mac-dot {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  display: inline-block;
-  cursor: pointer;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
-}
-
-.mac-dot:hover {
-  transform: scale(1.18);
-  filter: brightness(1.2);
-}
-
-.mac-dot.red { background: #ff5f56; border: 1px solid #e0443e; }
-.mac-dot.yellow { background: #ffbd2e; border: 1px solid #dea123; }
-.mac-dot.green { background: #27c93f; border: 1px solid #1aab29; }
 
 .brand {
   display: flex;
@@ -233,11 +200,15 @@ html, body {
   gap: 6px;
   font-size: 11px;
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 4px 10px;
   border-radius: 20px;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   transition: all var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status-dot {
@@ -593,7 +564,7 @@ html, body {
   padding: 8px 12px;
 }
 
-/* --- Segmented Control (Thinking Strength — macOS Frosted Pill) --- */
+/* --- Segmented Control (Thinking Strength — Frosted Dark Glass Pill) --- */
 .segmented-control {
   display: flex;
   background: rgba(255, 255, 255, 0.05);
@@ -742,7 +713,7 @@ html, body {
   align-items: flex-start;
 }
 
-/* --- User Bubble (macOS Vibrant Translucent Glass Pill) --- */
+/* --- User Bubble (Vibrant Translucent Dark Glass) --- */
 .user-bubble {
   background: linear-gradient(135deg, rgba(0, 162, 255, 0.88) 0%, rgba(130, 80, 255, 0.88) 100%);
   backdrop-filter: blur(16px);
@@ -764,7 +735,7 @@ html, body {
   position: relative;
 }
 
-/* --- Assistant Bubble (macOS Frosted Glass Card) --- */
+/* --- Assistant Bubble (Refined Frosted Dark Glass Card) --- */
 .assistant-bubble {
   background: rgba(18, 24, 38, 0.45);
   backdrop-filter: blur(24px) saturate(190%);
@@ -1213,7 +1184,7 @@ html, body {
   color: var(--accent-red);
 }
 
-/* --- Input Box (macOS Floating Glass Island) --- */
+/* --- Input Box (Floating Dark Glass Island) --- */
 .input-box-wrapper {
   background: rgba(16, 22, 34, 0.70);
   backdrop-filter: blur(30px) saturate(200%);
@@ -1306,7 +1277,7 @@ html, body {
   box-shadow: 0 0 12px rgba(0, 229, 255, 0.15);
 }
 
-/* --- Send / Stop Button (Cute macOS Circular Glow Pill) --- */
+/* --- Send / Stop Button (Circular Luminous Action Button) --- */
 .send-btn {
   background: linear-gradient(135deg, var(--accent-cyan) 0%, #00b4d8 100%);
   color: #050811;
