@@ -16,12 +16,13 @@
 
 ---
 
-## 🙏 A Humble Note from the Creator
+## 🙏 A Note from the Creator
 
-> *"I built `ollux` because I love running local AI models on Linux, but was exhausted by 600MB+ Electron wrappers and multi-gigabyte Docker setups just to chat with a model running on my own machine. `ollux` was crafted to be lightweight, respectful of your RAM, visually refined, and fast. I hope it serves your daily workflow well."*  
+> *"Hey everyone! I'm Aditya, a 1st-year computer science student and daily Arch Linux user. I built `ollux` because I love running local AI models with Ollama, but got tired of seeing simple chat wrappers swallow 700MB+ of RAM with Electron or require heavy Docker setups. I wanted something native, fast, respectful of system memory, visually clean with frosted glass, and capable of displaying visual charts and diagrams properly.*  
+> *This is an open project built with genuine care for the Linux community. If you run into any bugs or have ideas to make it better, please reach out to me directly — I would love to hear your feedback!"*  
 > — **Aditya Sharma** ([@AGIQdev-Aditya](https://github.com/AGIQdev-Aditya))
 
-If you find `ollux` helpful, please consider **starring the repository ⭐** and sharing it with other Linux enthusiasts!
+If you find `ollux` helpful, starring the repository ⭐ on GitHub means a lot!
 
 ---
 
@@ -233,22 +234,24 @@ cd ollux
 
 ---
 
-## 🤝 Contributing & Community
+## 💬 Feedback, Feature Requests & Getting in Touch
 
-Contributions, bug reports, and suggestions are warmly welcomed!
+I genuinely want to hear from you! Whether you have an idea for a feature, ran into a bug on your specific distro/window manager, or just want to chat about local AI on Linux:
 
-1. **Found a bug?** Open an [Issue](https://github.com/AGIQdev-Aditya/ollux/issues).
-2. **Want to contribute code?** Fork the repo, create your feature branch, and submit a Pull Request.
-3. **Enjoying the app?** Star the repository ⭐ on GitHub to help more Linux users discover it!
+- **Email me directly**: [agiq.dev@gmail.com](mailto:agiq.dev@gmail.com) — *I read and reply to every email!*
+- **Open a GitHub Issue**: For bugs or feature requests: [github.com/AGIQdev-Aditya/ollux/issues](https://github.com/AGIQdev-Aditya/ollux/issues)
+- **Start a Discussion**: Share your thoughts, ask questions, or discuss setups: [github.com/AGIQdev-Aditya/ollux/discussions](https://github.com/AGIQdev-Aditya/ollux/discussions)
+- **Pull Requests**: Community improvements, bugfixes, and ideas are always welcome!
 
 ---
 
-## 👤 Author & Maintainer
+## 👤 Author
 
 **Aditya Sharma**
 - GitHub: [@AGIQdev-Aditya](https://github.com/AGIQdev-Aditya)
 - Email: [agiq.dev@gmail.com](mailto:agiq.dev@gmail.com)
-- Maintained as an official open-source Linux client for Ollama.
+- 1st Year B.Tech Computer Science student & Linux enthusiast.
+- Project: Official open-source Linux client for Ollama.
 
 ---
 
