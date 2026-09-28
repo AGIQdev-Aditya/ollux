@@ -5,47 +5,10 @@
 
 /* ---------- DESIGN TOKENS ---------- */
 :root {
-  /* Elevation palette — wide luminance staircase for true depth */
-  --bg-primary:     #08090d;
-  --bg-secondary:   #0e1219;
-  --bg-elevated:    #141a24;
-  --bg-surface:     #181f2c;
-  --bg-card:        rgba(18, 25, 40, 0.82);
-  --bg-card-solid:  #121929;
-  --bg-card-hover:  rgba(24, 33, 52, 0.92);
-  --bg-input:       #10161f;
-  --bg-hover:       rgba(255, 255, 255, 0.04);
-
-  /* Borders — warm-neutral tinted whites */
-  --border-subtle:  rgba(255, 255, 255, 0.06);
-  --border-color:   rgba(255, 255, 255, 0.08);
-  --border-mid:     rgba(255, 255, 255, 0.12);
-  --border-focus:   rgba(0, 229, 255, 0.45);
-
-  /* Text — high-contrast for OLED readability */
-  --text-primary:   #f0f4f8;
-  --text-secondary: #8b97a8;
-  --text-muted:     #5c6a7e;
-
-  /* Accent palette — vibrant but non-fatiguing */
-  --accent-cyan:    #00e5ff;
-  --accent-cyan-rgb: 0, 229, 255;
-  --accent-blue:    #38bdf8;
-  --accent-purple:  #c4a7fa;
-  --accent-violet:  #a78bfa;
-  --accent-green:   #34d399;
-  --accent-emerald: #10b981;
-  --accent-red:     #f43f5e;
-  --accent-amber:   #f59e0b;
-
-  /* Typography */
-  --font-stack: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono:  "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
-
-  /* Motion — snappy but perceptible */
-  --transition-fast:   150ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-smooth: 250ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-spring: 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Motion tokens — macOS-grade fluid spring physics */
+  --transition-fast:   140ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-smooth: 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-spring: 320ms cubic-bezier(0.34, 1.4, 0.64, 1);
 
   /* Radii */
   --radius-xs: 4px;
@@ -55,7 +18,163 @@
   --radius-xl: 18px;
 
   /* Layout */
-  --sidebar-width: 280px;
+  --sidebar-width: 270px;
+
+  /* Typography */
+  --font-stack: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:  "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+
+  /* --- Default Dark Glass Theme --- */
+  --bg-app:          #0b0d12;
+  --bg-primary:      #0b0d12;
+  --bg-secondary:    rgba(16, 19, 27, 0.72);
+  --bg-sidebar:      rgba(13, 16, 24, 0.72);
+  --bg-top-nav:      rgba(11, 14, 21, 0.65);
+  --bg-elevated:     #151922;
+  --bg-surface:      #191f2b;
+  --bg-card:         rgba(20, 26, 38, 0.55);
+  --bg-card-solid:   #141924;
+  --bg-card-hover:   rgba(26, 34, 50, 0.85);
+  --bg-input-dock:   rgba(16, 21, 32, 0.76);
+  --bg-input:        rgba(255, 255, 255, 0.04);
+  --bg-hover:        rgba(255, 255, 255, 0.05);
+  --bg-active-pill:  rgba(255, 255, 255, 0.08);
+  --bg-chip:         rgba(255, 255, 255, 0.04);
+  --bg-chip-hover:   rgba(255, 255, 255, 0.08);
+
+  --border-subtle:   rgba(255, 255, 255, 0.06);
+  --border-color:    rgba(255, 255, 255, 0.08);
+  --border-mid:      rgba(255, 255, 255, 0.12);
+  --border-focus:    rgba(0, 229, 255, 0.45);
+  --border-dock:     rgba(255, 255, 255, 0.10);
+
+  --text-primary:    #f0f3f8;
+  --text-secondary:  #8c97a8;
+  --text-muted:      #576273;
+
+  --accent-cyan:     #00e5ff;
+  --accent-cyan-rgb: 0, 229, 255;
+  --accent-blue:     #38bdf8;
+  --accent-purple:   #c4a7fa;
+  --accent-violet:   #a78bfa;
+  --accent-green:    #34d399;
+  --accent-emerald:  #10b981;
+  --accent-red:      #f43f5e;
+  --accent-amber:    #f59e0b;
+
+  --glass-blur:      blur(28px) saturate(190%);
+  --glass-specular:  inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --shadow-dock:     0 20px 48px -10px rgba(0, 0, 0, 0.75);
+  --shadow-card:     0 10px 30px -6px rgba(0, 0, 0, 0.40);
+  --shadow-chip:     0 4px 16px rgba(0, 0, 0, 0.25);
+
+  --body-bg-gradient: radial-gradient(ellipse 65% 55% at 15% 10%, rgba(0, 229, 255, 0.07) 0%, transparent 60%),
+                      radial-gradient(ellipse 55% 45% at 85% 85%, rgba(196, 167, 250, 0.07) 0%, transparent 55%),
+                      radial-gradient(ellipse 45% 45% at 50% 50%, rgba(56, 189, 248, 0.03) 0%, transparent 65%),
+                      #090b0f;
+}
+
+/* ---------- ADAPTIVE LIGHT THEME (Frosted Quartz Glass) ---------- */
+@media (prefers-color-scheme: light) {
+  :root:not(.dark-theme) {
+    --bg-app:          #f4f6fa;
+    --bg-primary:      #f4f6fa;
+    --bg-secondary:    rgba(246, 248, 252, 0.82);
+    --bg-sidebar:      rgba(244, 246, 250, 0.80);
+    --bg-top-nav:      rgba(248, 250, 254, 0.75);
+    --bg-elevated:     #ffffff;
+    --bg-surface:      #eef1f6;
+    --bg-card:         rgba(255, 255, 255, 0.82);
+    --bg-card-solid:   #ffffff;
+    --bg-card-hover:   rgba(255, 255, 255, 0.98);
+    --bg-input-dock:   rgba(255, 255, 255, 0.88);
+    --bg-input:        rgba(0, 0, 0, 0.03);
+    --bg-hover:        rgba(0, 0, 0, 0.04);
+    --bg-active-pill:  rgba(0, 0, 0, 0.06);
+    --bg-chip:         rgba(0, 0, 0, 0.03);
+    --bg-chip-hover:   rgba(0, 0, 0, 0.06);
+
+    --border-subtle:   rgba(0, 0, 0, 0.05);
+    --border-color:    rgba(0, 0, 0, 0.08);
+    --border-mid:      rgba(0, 0, 0, 0.12);
+    --border-focus:    rgba(0, 132, 255, 0.50);
+    --border-dock:     rgba(0, 0, 0, 0.09);
+
+    --text-primary:    #12151b;
+    --text-secondary:  #505a6a;
+    --text-muted:      #8692a3;
+
+    --accent-cyan:     #0077e6;
+    --accent-cyan-rgb: 0, 119, 230;
+    --accent-blue:     #0284c7;
+    --accent-purple:   #7c3aed;
+    --accent-violet:   #6d28d9;
+    --accent-green:    #059669;
+    --accent-emerald:  #10b981;
+    --accent-red:      #e11d48;
+    --accent-amber:    #d97706;
+
+    --glass-blur:      blur(28px) saturate(180%);
+    --glass-specular:  inset 0 1px 0 rgba(255, 255, 255, 0.90);
+    --shadow-dock:     0 16px 40px -10px rgba(0, 0, 0, 0.10);
+    --shadow-card:     0 8px 24px -4px rgba(0, 0, 0, 0.06);
+    --shadow-chip:     0 4px 14px rgba(0, 0, 0, 0.05);
+
+    --body-bg-gradient: radial-gradient(ellipse 65% 55% at 15% 10%, rgba(0, 180, 216, 0.06) 0%, transparent 60%),
+                        radial-gradient(ellipse 55% 45% at 85% 85%, rgba(139, 92, 246, 0.06) 0%, transparent 55%),
+                        radial-gradient(ellipse 45% 45% at 50% 50%, rgba(56, 189, 248, 0.03) 0%, transparent 65%),
+                        #f2f4f8;
+  }
+}
+
+.light-theme {
+  --bg-app:          #f4f6fa;
+  --bg-primary:      #f4f6fa;
+  --bg-secondary:    rgba(246, 248, 252, 0.82);
+  --bg-sidebar:      rgba(244, 246, 250, 0.80);
+  --bg-top-nav:      rgba(248, 250, 254, 0.75);
+  --bg-elevated:     #ffffff;
+  --bg-surface:      #eef1f6;
+  --bg-card:         rgba(255, 255, 255, 0.82);
+  --bg-card-solid:   #ffffff;
+  --bg-card-hover:   rgba(255, 255, 255, 0.98);
+  --bg-input-dock:   rgba(255, 255, 255, 0.88);
+  --bg-input:        rgba(0, 0, 0, 0.03);
+  --bg-hover:        rgba(0, 0, 0, 0.04);
+  --bg-active-pill:  rgba(0, 0, 0, 0.06);
+  --bg-chip:         rgba(0, 0, 0, 0.03);
+  --bg-chip-hover:   rgba(0, 0, 0, 0.06);
+
+  --border-subtle:   rgba(0, 0, 0, 0.05);
+  --border-color:    rgba(0, 0, 0, 0.08);
+  --border-mid:      rgba(0, 0, 0, 0.12);
+  --border-focus:    rgba(0, 132, 255, 0.50);
+  --border-dock:     rgba(0, 0, 0, 0.09);
+
+  --text-primary:    #12151b;
+  --text-secondary:  #505a6a;
+  --text-muted:      #8692a3;
+
+  --accent-cyan:     #0077e6;
+  --accent-cyan-rgb: 0, 119, 230;
+  --accent-blue:     #0284c7;
+  --accent-purple:   #7c3aed;
+  --accent-violet:   #6d28d9;
+  --accent-green:    #059669;
+  --accent-emerald:  #10b981;
+  --accent-red:      #e11d48;
+  --accent-amber:    #d97706;
+
+  --glass-blur:      blur(28px) saturate(180%);
+  --glass-specular:  inset 0 1px 0 rgba(255, 255, 255, 0.90);
+  --shadow-dock:     0 16px 40px -10px rgba(0, 0, 0, 0.10);
+  --shadow-card:     0 8px 24px -4px rgba(0, 0, 0, 0.06);
+  --shadow-chip:     0 4px 14px rgba(0, 0, 0, 0.05);
+
+  --body-bg-gradient: radial-gradient(ellipse 65% 55% at 15% 10%, rgba(0, 180, 216, 0.06) 0%, transparent 60%),
+                        radial-gradient(ellipse 55% 45% at 85% 85%, rgba(139, 92, 246, 0.06) 0%, transparent 55%),
+                        radial-gradient(ellipse 45% 45% at 50% 50%, rgba(56, 189, 248, 0.03) 0%, transparent 65%),
+                        #f2f4f8;
 }
 
 /* ---------- RESET & BASE ---------- */
@@ -66,17 +185,13 @@
 }
 
 html, body {
-  color-scheme: dark;
   font-family: var(--font-stack);
   font-feature-settings: 'kern', 'liga', 'calt';
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background:
-    radial-gradient(ellipse 65% 55% at 15% 10%, rgba(0, 229, 255, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 55% 45% at 85% 85%, rgba(196, 167, 250, 0.08) 0%, transparent 55%),
-    radial-gradient(ellipse 45% 45% at 50% 50%, rgba(56, 189, 248, 0.04) 0%, transparent 65%),
-    #080a0f;
+  background: var(--body-bg-gradient);
+  background-color: var(--bg-app);
   color: var(--text-primary);
   height: 100vh;
   overflow: hidden;
@@ -84,6 +199,7 @@ html, body {
   -webkit-user-select: none;
   line-height: 1.5;
   font-size: 14px;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* Selection */
@@ -129,14 +245,14 @@ html, body {
 }
 
 /* ==========================================================================
-   SIDEBAR (Frosted Dark Glass)
+   SIDEBAR (Frosted Translucent Glass)
    ========================================================================== */
 .sidebar {
   width: var(--sidebar-width);
-  background: rgba(12, 16, 26, 0.70);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--bg-sidebar);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -155,7 +271,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
@@ -330,10 +446,14 @@ html, body {
 }
 
 .session-actions {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
+}
+
+.session-item:hover .session-actions {
+  display: flex;
 }
 
 .session-action-btn {
@@ -430,14 +550,14 @@ html, body {
 
 .top-nav {
   height: 56px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  background: rgba(10, 14, 22, 0.55);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  background: var(--bg-top-nav);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   z-index: 5;
   flex-shrink: 0;
 }
@@ -1243,7 +1363,19 @@ html, body {
 .input-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.input-actions-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-actions-right {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 

@@ -142,6 +142,22 @@
   function setupEventListeners() {
     newChatBtn.addEventListener("click", createNewChat);
 
+    // Auto-adapt to system Dark / Light theme preference
+    if (window.matchMedia) {
+      const colorSchemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleThemeChange = (e) => {
+        if (e.matches) {
+          document.body.classList.remove("light-theme");
+          document.body.classList.add("dark-theme");
+        } else {
+          document.body.classList.remove("dark-theme");
+          document.body.classList.add("light-theme");
+        }
+      };
+      colorSchemeQuery.addEventListener("change", handleThemeChange);
+      handleThemeChange(colorSchemeQuery);
+    }
+
     // Global Desktop Keyboard Shortcuts
     window.addEventListener("keydown", (e) => {
       // Ctrl+Shift+C -> Copy last assistant message
@@ -560,6 +576,26 @@
     }
   }
 
+  function formatRelativeTime(dateStr) {
+    if (!dateStr) return "";
+    try {
+      const normalized = dateStr.endsWith("Z") ? dateStr : dateStr.replace(" ", "T") + "Z";
+      const date = new Date(normalized);
+      if (isNaN(date.getTime())) return "";
+      const diffMs = Math.max(0, Date.now() - date.getTime());
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+      if (diffMins < 1) return "1m";
+      if (diffMins < 60) return `${diffMins}m`;
+      if (diffHours < 24) return `${diffHours}h`;
+      if (diffDays < 30) return `${diffDays}d`;
+      return `${Math.floor(diffDays / 30)}mo`;
+    } catch {
+      return "";
+    }
+  }
+
   async function loadSessions() {
     if (!window.pywebview) return;
     try {
@@ -581,6 +617,10 @@
         const nameSpan = document.createElement("span");
         nameSpan.className = "session-name";
         nameSpan.textContent = s.title;
+
+        const timeSpan = document.createElement("span");
+        timeSpan.className = "session-time";
+        timeSpan.textContent = formatRelativeTime(s.updated_at || s.created_at);
 
         const actionsDiv = document.createElement("div");
         actionsDiv.className = "session-actions";
@@ -622,6 +662,7 @@
         actionsDiv.appendChild(delBtn);
 
         item.appendChild(nameSpan);
+        item.appendChild(timeSpan);
         item.appendChild(actionsDiv);
 
         item.addEventListener("click", () => switchSession(s.id));
