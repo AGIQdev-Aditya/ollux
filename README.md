@@ -11,7 +11,7 @@
   <a href="https://github.com/AGIQdev-Aditya/ollux"><img src="https://img.shields.io/badge/RAM_Footprint-~160MB_Total-10b981?style=flat-square" alt="Memory"></a>
   <a href="https://github.com/AGIQdev-Aditya/ollux"><img src="https://img.shields.io/badge/Engine-Python%203.10%2B%20%7C%20WebKit2GTK-bb9af7?style=flat-square&logo=python" alt="Engine"></a>
   <img src="https://img.shields.io/badge/AUR-Coming_Soon-yellow?style=flat-square&logo=arch-linux" alt="AUR Status">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-f43f5e?style=flat-square" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-f43f5e?style=flat-square" alt="License"></a>
 </p>
 
 ---
@@ -255,7 +255,12 @@ I genuinely want to hear from you! Whether you have an idea for a feature, ran i
 
 ---
 
-## 📄 License
+## 📄 License & Open-Source Rights
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.  
-*Respect user privacy. Keep computing local.*
+This project is licensed under the **GNU General Public License v3.0 (GPLv3)** — see the [LICENSE](LICENSE) file for complete legal terms.
+
+- **You are free to**: Use, run, inspect, and modify `ollux` for personal or community use.
+- **You are required to**: Keep all author attributions intact (`Copyright (C) 2026 Aditya Sharma`). Any derivative work or redistribution must remain 100% open-source under GPLv3.
+- **Strictly prohibited**: Taking this code, closing the source, or redistributing it as a commercial paid product or under a different author's name.
+
+*Keep software free and open. Keep computing local.*

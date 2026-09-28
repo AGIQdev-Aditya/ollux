@@ -4,7 +4,7 @@ pkgbase = ollux
 	pkgrel = 1
 	url = https://github.com/AGIQdev-Aditya/ollux
 	arch = any
-	license = MIT
+	license = GPL-3.0-or-later
 	depends = python>=3.10
 	depends = python-pywebview
 	depends = python-requests

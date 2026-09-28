@@ -5,7 +5,7 @@ pkgrel=1
 pkgdesc="Ultra-lightweight native Linux desktop client for Ollama with reasoning controls and live benchmarks"
 arch=('any')
 url="https://github.com/AGIQdev-Aditya/ollux"
-license=('MIT')
+license=('GPL-3.0-or-later')
 depends=(
     'python>=3.10'
     'python-pywebview'
