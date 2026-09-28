@@ -53,7 +53,14 @@ class OlluxAPI:
     def set_window(self, window):
         self._window = window
 
-    # --- System & Model Management ---
+    def is_composited(self) -> bool:
+        """Check if active Linux desktop environment supports RGBA window compositing."""
+        try:
+            from gi.repository import Gdk
+            screen = Gdk.Screen.get_default()
+            return bool(screen and screen.is_composited() and screen.get_rgba_visual())
+        except Exception:
+            return False
 
     def check_connection(self) -> Dict[str, Any]:
         """Check Ollama daemon status."""
@@ -440,13 +447,11 @@ class OlluxAPI:
                         self._active_stop_event = None
                         self._active_response = None
                 
-                # Trim WebKit memory
+                # Trim WebKit & Python process memory
                 try:
-                    import gi
-                    gi.require_version("WebKit2", "4.1")
-                    from gi.repository import WebKit2
-                    # Run on GLib idle to ensure it executes in the main thread
-                    from gi.repository import GLib
+                    import gc
+                    gc.collect()
+                    from gi.repository import WebKit2, GLib
                     GLib.idle_add(lambda: WebKit2.WebContext.get_default().clear_cache() or False)
                 except Exception:
                     pass

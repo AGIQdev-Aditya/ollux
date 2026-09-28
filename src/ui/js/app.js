@@ -265,6 +265,21 @@
   }
 
   async function initApp() {
+    // Check compositor support for non-composited X11 environments (e.g. basic XFCE, Openbox, i3 without picom)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("composited") === "0") {
+        document.body.classList.add("no-compositor");
+      } else if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.is_composited === "function") {
+        const isComp = await window.pywebview.api.is_composited();
+        if (!isComp) {
+          document.body.classList.add("no-compositor");
+        }
+      }
+    } catch (e) {
+      // Keep default styling
+    }
+
     setupEventListeners();
     await checkDaemon();
     await loadModels();

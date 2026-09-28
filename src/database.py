@@ -28,6 +28,8 @@ class Database:
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;")
         conn.execute("PRAGMA foreign_keys = ON;")
+        conn.execute("PRAGMA cache_size = -4000;")  # 4MB max page cache
+        conn.execute("PRAGMA temp_store = MEMORY;")
         return conn
 
     def _init_db(self):

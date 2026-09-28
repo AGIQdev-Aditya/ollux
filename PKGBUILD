@@ -36,7 +36,9 @@ exec python3 /usr/share/ollux/src/main.py "$@"
 SH
     chmod 755 "$pkgdir/usr/bin/ollux"
 
-    # Desktop entry & Icon
+    # Desktop entry & Icons
     install -Dm644 "$srcdir/$pkgname-$pkgver/ollux.desktop" "$pkgdir/usr/share/applications/ollux.desktop"
     install -Dm644 "$srcdir/$pkgname-$pkgver/assets/ollux.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/ollux.svg"
+    install -Dm644 "$srcdir/$pkgname-$pkgver/assets/ollux.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/ollux.png"
+    install -Dm644 "$srcdir/$pkgname-$pkgver/assets/ollux.png" "$pkgdir/usr/share/pixmaps/ollux.png"
 }

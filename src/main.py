@@ -40,6 +40,18 @@ from src.api import OlluxAPI
 from src.dnd_handler import install_gtk_dnd
 
 
+def is_composited_environment() -> bool:
+    """Detect if current Linux display screen supports native RGBA window compositing."""
+    try:
+        from gi.repository import Gdk
+        screen = Gdk.Screen.get_default()
+        if screen is None:
+            return False
+        return bool(screen.is_composited() and screen.get_rgba_visual())
+    except Exception:
+        return False
+
+
 def main():
     # Initialize Core Engines
     db = Database()
@@ -50,35 +62,42 @@ def main():
 
     icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets", "ollux.png"))
 
-    # Install GTK transparency style provider for seamless compositor diffusion
-    try:
-        from gi.repository import Gtk, Gdk
-        provider = Gtk.CssProvider()
-        provider.load_from_data(b"""
-            window, GtkWindow, .background, scrolledwindow, GtkScrolledWindow {
-                background-color: transparent;
-                background-image: none;
-            }
-        """)
-        screen = Gdk.Screen.get_default()
-        if screen:
-            Gtk.StyleContext.add_provider_for_screen(
-                screen,
-                provider,
-                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 10
-            )
-    except Exception:
-        pass
+    # Detect Compositor (Wayland, GNOME, KDE, Hyprland, Sway, picom vs non-composited X11/i3/XFCE)
+    composited = is_composited_environment()
 
-    # Create Native WebKit2GTK Window with native RGBA transparency
+    # Install GTK transparency style provider for seamless compositor diffusion if supported
+    if composited:
+        try:
+            from gi.repository import Gtk, Gdk
+            provider = Gtk.CssProvider()
+            provider.load_from_data(b"""
+                window, GtkWindow, .background, scrolledwindow, GtkScrolledWindow {
+                    background-color: transparent;
+                    background-image: none;
+                }
+            """)
+            screen = Gdk.Screen.get_default()
+            if screen:
+                Gtk.StyleContext.add_provider_for_screen(
+                    screen,
+                    provider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 10
+                )
+        except Exception:
+            pass
+
+    # Create Native WebKit2GTK Window with native RGBA transparency on composited environments,
+    # or solid opaque dark surface on non-composited X11 (XFCE, Openbox, i3 without picom, VMs).
+    target_url = f"file://{ui_index_path}" if composited else f"file://{ui_index_path}?composited=0"
     window = webview.create_window(
         title="ollux",
-        url=f"file://{ui_index_path}",
+        url=target_url,
         js_api=api,
         width=1120,
         height=760,
         min_size=(740, 520),
-        transparent=True,
+        transparent=composited,
+        background_color=None if composited else "#0f121a",
         text_select=True
     )
     api.set_window(window)
