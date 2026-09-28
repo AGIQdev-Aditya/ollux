@@ -112,26 +112,39 @@ Running local LLMs on Linux traditionally forces you into difficult compromises:
 
 ## 🚀 Installation
 
-### Option 1: Arch Linux / Manjaro / EndeavourOS (AUR)
+### Option 1: Universal 1-Line Installer (Recommended)
+Installs `ollux` natively with desktop icon, application menu entry, and path launcher on **Arch, Ubuntu, Debian, Linux Mint, and Fedora**:
 
 ```bash
-# Using yay
-yay -S ollux
-
-# Using paru
-paru -S ollux
-```
-
-Or build manually with `makepkg`:
-```bash
-git clone https://aur.archlinux.org/ollux.git
-cd ollux
-makepkg -si
+curl -sSL https://raw.githubusercontent.com/AGIQdev-Aditya/ollux/master/install.sh | bash
 ```
 
 ---
 
-### Option 2: Debian / Ubuntu / Linux Mint / Pop!_OS
+### Option 2: Arch Linux / Manjaro / EndeavourOS
+
+**Direct Pacman Installation (Instant pre-built binary package):**
+```bash
+sudo pacman -U https://github.com/AGIQdev-Aditya/ollux/releases/download/v0.1.0/ollux-0.1.0-1-any.pkg.tar.zst
+```
+
+**Build with `makepkg` (Source):**
+```bash
+git clone https://github.com/AGIQdev-Aditya/ollux.git
+cd ollux
+makepkg -si
+```
+
+**Via AUR (yay / paru):**
+```bash
+yay -S ollux
+# or
+paru -S ollux
+```
+
+---
+
+### Option 3: Debian / Ubuntu / Linux Mint / Pop!_OS
 
 1. **Install system dependencies**:
 ```bash
@@ -152,7 +165,7 @@ pip install pywebview ddgs
 
 ---
 
-### Option 3: Fedora / RHEL / Nobara
+### Option 4: Fedora / RHEL / Nobara
 
 1. **Install system dependencies**:
 ```bash
@@ -172,7 +185,7 @@ pip install pywebview ddgs
 
 ---
 
-### Option 4: Run Locally Anywhere (Portable)
+### Option 5: Run Locally Anywhere (Portable)
 
 Ensure you have [Ollama](https://ollama.com/) running (`ollama serve` or `sudo systemctl start ollama`).
 
