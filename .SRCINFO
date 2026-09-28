@@ -15,6 +15,6 @@ pkgbase = ollux
 	optdepends = ollama: Local LLM runner daemon
 	optdepends = python-ddgs: Privacy-first web search integration
 	source = ollux-0.1.0.tar.gz::https://github.com/AGIQdev-Aditya/ollux/archive/refs/tags/v0.1.0.tar.gz
-	sha256sums = SKIP
+	sha256sums = c858dc1745c82d94676a57d4756bda6459dacf6f9d359769ce7a5d00e62ee0bf
 
 pkgname = ollux
