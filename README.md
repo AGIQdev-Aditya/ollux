@@ -10,7 +10,7 @@
   <a href="https://github.com/AGIQdev-Aditya/ollux"><img src="https://img.shields.io/badge/Platform-Arch%20%7C%20Linux%20%7C%20Wayland%20%7C%20X11-00e5ff?style=flat-square&logo=linux" alt="Platform"></a>
   <a href="https://github.com/AGIQdev-Aditya/ollux"><img src="https://img.shields.io/badge/RAM_Footprint-~160MB_Total-10b981?style=flat-square" alt="Memory"></a>
   <a href="https://github.com/AGIQdev-Aditya/ollux"><img src="https://img.shields.io/badge/Engine-Python%203.10%2B%20%7C%20WebKit2GTK-bb9af7?style=flat-square&logo=python" alt="Engine"></a>
-  <a href="https://aur.archlinux.org/packages/ollux"><img src="https://img.shields.io/badge/AUR-ollux-1793d1?style=flat-square&logo=arch-linux" alt="AUR"></a>
+  <img src="https://img.shields.io/badge/AUR-Coming_Soon-yellow?style=flat-square&logo=arch-linux" alt="AUR Status">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-f43f5e?style=flat-square" alt="License"></a>
 </p>
 
@@ -135,8 +135,11 @@ cd ollux
 makepkg -si
 ```
 
-**Via AUR (yay / paru):**
+**Via AUR (`yay` / `paru`) — *Coming Soon*:**
+> ⚠️ **Note on AUR:** New AUR account registrations are temporarily paused by Arch Linux administrators due to anti-spam maintenance. As soon as registrations reopen, `ollux` will be live on the AUR. In the meantime, please use the **Direct Pacman Installation** or **`makepkg -si`** above!
+
 ```bash
+# Will be active once AUR registration reopens:
 yay -S ollux
 # or
 paru -S ollux
