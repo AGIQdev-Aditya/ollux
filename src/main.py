@@ -50,7 +50,27 @@ def main():
 
     icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets", "ollux.png"))
 
-    # Create Native WebKit2GTK Window
+    # Install GTK transparency style provider for seamless compositor diffusion
+    try:
+        from gi.repository import Gtk, Gdk
+        provider = Gtk.CssProvider()
+        provider.load_from_data(b"""
+            window, GtkWindow, .background, scrolledwindow, GtkScrolledWindow {
+                background-color: transparent;
+                background-image: none;
+            }
+        """)
+        screen = Gdk.Screen.get_default()
+        if screen:
+            Gtk.StyleContext.add_provider_for_screen(
+                screen,
+                provider,
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 10
+            )
+    except Exception:
+        pass
+
+    # Create Native WebKit2GTK Window with native RGBA transparency
     window = webview.create_window(
         title="ollux",
         url=f"file://{ui_index_path}",
@@ -58,7 +78,7 @@ def main():
         width=1120,
         height=760,
         min_size=(740, 520),
-        background_color="#12141a",
+        transparent=True,
         text_select=True
     )
     api.set_window(window)

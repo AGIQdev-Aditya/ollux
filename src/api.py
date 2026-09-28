@@ -20,9 +20,9 @@ from src.web_search import perform_web_search, format_search_context, should_ski
 
 class OlluxAPI:
     def __init__(self, db: Database, client: OllamaClient):
-        self.db = db
-        self.client = client
-        self.window = None
+        self._db = db
+        self._client = client
+        self._window = None
         self._is_generating = False
         self._stream_lock = threading.Lock()
         self._generation_counter = 0
@@ -51,34 +51,34 @@ class OlluxAPI:
         return self._active_stop_event
 
     def set_window(self, window):
-        self.window = window
+        self._window = window
 
     # --- System & Model Management ---
 
     def check_connection(self) -> Dict[str, Any]:
         """Check Ollama daemon status."""
-        return self.client.check_connection()
+        return self._client.check_connection()
 
     def get_models(self) -> List[Dict[str, Any]]:
         """List all downloaded models."""
-        return self.client.list_models()
+        return self._client.list_models()
 
     def delete_model(self, model_name: str) -> Dict[str, Any]:
         """Delete an installed model from disk."""
-        return self.client.delete_model(model_name)
+        return self._client.delete_model(model_name)
 
     def pull_model(self, model_name: str):
         """Asynchronously pull model with progress events."""
         def run_pull():
             def on_progress(data):
-                if self.window:
+                if self._window:
                     payload = json.dumps(data)
-                    self.window.evaluate_js(f"window.onModelPullProgress({payload})")
+                    self._window.evaluate_js(f"window.onModelPullProgress({payload})")
             
-            success = self.client.pull_model(model_name, on_progress)
-            if self.window:
+            success = self._client.pull_model(model_name, on_progress)
+            if self._window:
                 res = json.dumps({"status": "completed", "success": success, "model": model_name})
-                self.window.evaluate_js(f"window.onModelPullComplete({res})")
+                self._window.evaluate_js(f"window.onModelPullComplete({res})")
 
         thread = threading.Thread(target=run_pull, daemon=True)
         thread.start()
@@ -87,43 +87,43 @@ class OlluxAPI:
     # --- Sessions & History ---
 
     def get_sessions(self) -> List[Dict[str, Any]]:
-        return self.db.list_sessions()
+        return self._db.list_sessions()
 
     def get_session_data(self, session_id: str) -> Dict[str, Any]:
-        session = self.db.get_session(session_id)
-        messages = self.db.get_messages(session_id)
+        session = self._db.get_session(session_id)
+        messages = self._db.get_messages(session_id)
         return {"session": session, "messages": messages}
 
     def create_session(self, title: str = "New Chat", model: str = "", thinking_level: str = "med") -> str:
         if not model:
-            models = self.client.list_models()
+            models = self._client.list_models()
             model = models[0]["name"] if models else "llama2-uncensored:7b"
-        return self.db.create_session(title=title, model=model, thinking_level=thinking_level)
+        return self._db.create_session(title=title, model=model, thinking_level=thinking_level)
 
     def update_session(self, session_id: str, title: Optional[str] = None, model: Optional[str] = None, thinking_level: Optional[str] = None):
-        self.db.update_session(session_id, title=title, model=model, thinking_level=thinking_level)
+        self._db.update_session(session_id, title=title, model=model, thinking_level=thinking_level)
         return True
 
     def delete_session(self, session_id: str) -> bool:
-        return self.db.delete_session(session_id)
+        return self._db.delete_session(session_id)
 
     def toggle_pin_session(self, session_id: str) -> bool:
-        return self.db.toggle_pin_session(session_id)
+        return self._db.toggle_pin_session(session_id)
 
     def export_session_markdown(self, session_id: str) -> Dict[str, Any]:
         """Export session history as a beautifully formatted Markdown file."""
-        if not self.window:
+        if not self._window:
             return {"success": False, "error": "No active window"}
-        session = self.db.get_session(session_id)
+        session = self._db.get_session(session_id)
         if not session:
             return {"success": False, "error": "Session not found"}
 
-        messages = self.db.get_messages(session_id)
+        messages = self._db.get_messages(session_id)
         title = session.get("title", "Conversation")
         clean_title = "".join(c for c in title if c.isalnum() or c in " _-").strip() or "conversation"
 
         dialog_type = getattr(getattr(webview, "FileDialog", None), "SAVE", getattr(webview, "SAVE_DIALOG", None))
-        filepath = self.window.create_file_dialog(
+        filepath = self._window.create_file_dialog(
             dialog_type,
             save_filename=f"{clean_title}.md",
             file_types=('Markdown (*.md)', 'All files (*.*)')
@@ -162,20 +162,20 @@ class OlluxAPI:
             return {"success": False, "error": str(e)}
 
     def get_setting(self, key: str, default: Any = None):
-        return self.db.get_setting(key, default)
+        return self._db.get_setting(key, default)
 
     def set_setting(self, key: str, value: Any):
-        self.db.set_setting(key, value)
+        self._db.set_setting(key, value)
         return True
 
     # --- File Attachments ---
 
     def open_file_dialog(self) -> List[str]:
         """Show native GTK file picker dialog."""
-        if not self.window:
+        if not self._window:
             return []
         dialog_type = getattr(getattr(webview, "FileDialog", None), "OPEN", getattr(webview, "OPEN_DIALOG", None))
-        result = self.window.create_file_dialog(
+        result = self._window.create_file_dialog(
             dialog_type,
             allow_multiple=True,
             file_types=('All files (*.*)', 'PDF documents (*.pdf)', 'Image files (*.png;*.jpg;*.jpeg;*.webp)', 'Code and Text (*.txt;*.py;*.js;*.md;*.json;*.cpp;*.c;*.sh)')
@@ -254,7 +254,7 @@ class OlluxAPI:
         attachments = attachments or []
 
         # 1. Store user message in DB
-        self.db.add_message(
+        self._db.add_message(
             session_id=session_id,
             role="user",
             content=content,
@@ -262,15 +262,15 @@ class OlluxAPI:
         )
 
         # Auto-generate session title if it's the first message
-        session = self.db.get_session(session_id)
+        session = self._db.get_session(session_id)
         if session and (session.get("title") == "New Chat" or not session.get("title")):
             words = content.strip().split()
             first_title = " ".join(words[:5]) if words else "Conversation"
             if len(first_title) > 35:
                 first_title = first_title[:32] + "..."
-            self.db.update_session(session_id, title=first_title, model=model, thinking_level=thinking_level)
-            if self.window:
-                self.window.evaluate_js(f"window.onSessionRenamed({json.dumps({'id': session_id, 'title': first_title})})")
+            self._db.update_session(session_id, title=first_title, model=model, thinking_level=thinking_level)
+            if self._window:
+                self._window.evaluate_js(f"window.onSessionRenamed({json.dumps({'id': session_id, 'title': first_title})})")
 
         # 2. Spawn worker thread for search & streaming
         def worker():
@@ -278,7 +278,7 @@ class OlluxAPI:
             search_sources = []
 
             # Retrieve conversation history
-            history_rows = self.db.get_messages(session_id)
+            history_rows = self._db.get_messages(session_id)
             prev_history = history_rows[:-1] if history_rows else []
 
             # Privacy Web Search (DuckDuckGo)
@@ -286,15 +286,15 @@ class OlluxAPI:
                 if not should_skip_web_search(content):
                     cleaned_q = clean_search_query(content, history=prev_history)
                     if cleaned_q:
-                        if self.window:
-                            self.window.evaluate_js(f"window.onSearchStatus({json.dumps(f'Searching web for: \"{cleaned_q}\"...')})")
+                        if self._window:
+                            self._window.evaluate_js(f"window.onSearchStatus({json.dumps(f'Searching web for: \"{cleaned_q}\"...')})")
                         try:
                             search_sources = perform_web_search(cleaned_q, max_results=5)
                             if search_sources:
                                 search_context_prompt = format_search_context(cleaned_q, search_sources, model)
-                                if self.window:
+                                if self._window:
                                     sources_json = json.dumps(search_sources)
-                                    self.window.evaluate_js(f"window.onWebSearchResults({sources_json})")
+                                    self._window.evaluate_js(f"window.onWebSearchResults({sources_json})")
                         except Exception as e:
                             print("Search error:", e)
 
@@ -363,9 +363,9 @@ class OlluxAPI:
                     chunk_buffer.clear()
                     last_flush[0] = time.time()
 
-                if self.window and not local_stop_event.is_set():
+                if self._window and not local_stop_event.is_set():
                     payload = json.dumps(batch)
-                    self.window.evaluate_js(f"window.onStreamBatch({payload})")
+                    self._window.evaluate_js(f"window.onStreamBatch({payload})")
 
             def on_chunk(chunk_data):
                 if local_stop_event.is_set():
@@ -390,8 +390,8 @@ class OlluxAPI:
                 full_thinking = "".join(accumulated_thinking)
 
                 # Guard: Do not write message if session was deleted during streaming
-                if self.db.get_session(session_id) is not None:
-                    self.db.add_message(
+                if self._db.get_session(session_id) is not None:
+                    self._db.add_message(
                         session_id=session_id,
                         role="assistant",
                         content=full_content,
@@ -399,30 +399,30 @@ class OlluxAPI:
                         metrics=metrics
                     )
 
-                if self.window:
+                if self._window:
                     payload = json.dumps({"session_id": session_id, "metrics": metrics})
-                    self.window.evaluate_js(f"window.onStreamComplete({payload})")
+                    self._window.evaluate_js(f"window.onStreamComplete({payload})")
 
                 with self._stream_lock:
                     if self._generation_counter == current_gen_id:
                         self._is_generating = False
 
             def on_error(err_str):
-                if self.window:
+                if self._window:
                     payload = json.dumps({"session_id": session_id, "error": str(err_str)})
-                    self.window.evaluate_js(f"window.onStreamError({payload})")
+                    self._window.evaluate_js(f"window.onStreamError({payload})")
                 with self._stream_lock:
                     if self._generation_counter == current_gen_id:
                         self._is_generating = False
 
             # Launch streaming
             try:
-                model_max_ctx = self.client.get_model_context_length(model)
+                model_max_ctx = self._client.get_model_context_length(model)
                 target_num_ctx = None
                 if estimated_attachment_tokens > 0:
                     target_num_ctx = min(model_max_ctx, max(2048, estimated_attachment_tokens + 1024))
                 
-                self.client.stream_chat(
+                self._client.stream_chat(
                     model=model,
                     messages=ollama_messages,
                     thinking_level=thinking_level,

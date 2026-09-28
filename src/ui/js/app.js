@@ -30,6 +30,13 @@
   const sidebar = document.getElementById("sidebar");
   const chatTitle = document.getElementById("chat-title");
   const modelSelect = document.getElementById("model-select");
+  const dockModelName = document.getElementById("dock-model-name");
+
+  function updateDockModelDisplay() {
+    if (!dockModelName) return;
+    const name = state.currentModel || (modelSelect ? modelSelect.value : "");
+    dockModelName.textContent = name || "Select Model";
+  }
   const thinkingSelector = document.getElementById("thinking-selector");
   const exportChatBtn = document.getElementById("export-chat-btn");
   const messagesContainer = document.getElementById("messages-container");
@@ -247,6 +254,7 @@
 
     modelSelect.addEventListener("change", async (e) => {
       state.currentModel = e.target.value;
+      updateDockModelDisplay();
       if (state.currentSessionId && window.pywebview) {
         await window.pywebview.api.update_session(state.currentSessionId, null, state.currentModel, null);
       }
@@ -571,6 +579,7 @@
         state.currentModel = state.models[0].name;
       }
       modelSelect.value = state.currentModel;
+      updateDockModelDisplay();
     } catch (err) {
       console.error("Failed to load models:", err);
     }
@@ -758,6 +767,7 @@
     chatTitle.textContent = data.session.title;
     state.currentModel = data.session.model || state.currentModel;
     modelSelect.value = state.currentModel;
+    updateDockModelDisplay();
 
     state.thinkingLevel = data.session.thinking_level || "med";
     thinkingSelector.querySelectorAll(".seg-btn").forEach((btn) => {

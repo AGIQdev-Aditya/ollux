@@ -25,16 +25,16 @@
   --font-mono:  "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
 
   /* --- Antigravity Dark Glass Elevation Staircase --- */
-  --bg-app:          #13151b;
-  --bg-primary:      #13151b;
-  --bg-sidebar:      #0e1015;
-  --bg-top-nav:      rgba(15, 17, 23, 0.78);
-  --bg-elevated:     #1a1e28;
-  --bg-surface:      #1f2430;
-  --bg-card:         rgba(26, 31, 42, 0.65);
-  --bg-card-solid:   #1a1e28;
-  --bg-card-hover:   rgba(34, 41, 56, 0.85);
-  --bg-input-dock:   rgba(20, 24, 34, 0.85);
+  --bg-app:          rgba(15, 18, 26, 0.72);
+  --bg-primary:      rgba(15, 18, 26, 0.72);
+  --bg-sidebar:      rgba(11, 13, 19, 0.65);
+  --bg-top-nav:      rgba(15, 18, 26, 0.55);
+  --bg-elevated:     rgba(26, 31, 44, 0.85);
+  --bg-surface:      rgba(30, 37, 52, 0.85);
+  --bg-card:         rgba(24, 30, 44, 0.65);
+  --bg-card-solid:   #181d2a;
+  --bg-card-hover:   rgba(34, 42, 60, 0.85);
+  --bg-input-dock:   rgba(18, 23, 34, 0.75);
   --bg-input:        rgba(255, 255, 255, 0.04);
   --bg-hover:        rgba(255, 255, 255, 0.06);
   --bg-active-pill:  rgba(255, 255, 255, 0.10);
@@ -61,32 +61,31 @@
   --accent-red:      #f43f5e;
   --accent-amber:    #f59e0b;
 
-  --glass-blur:      blur(28px) saturate(190%);
+  --glass-blur:      blur(32px) saturate(190%);
   --glass-specular:  inset 0 1px 0 rgba(255, 255, 255, 0.12);
   --shadow-dock:     0 20px 50px -10px rgba(0, 0, 0, 0.65), 0 0 1px rgba(255, 255, 255, 0.08);
   --shadow-card:     0 10px 30px -6px rgba(0, 0, 0, 0.35);
   --shadow-chip:     0 4px 16px rgba(0, 0, 0, 0.20);
 
-  --body-bg-gradient: radial-gradient(ellipse 70% 60% at 20% 15%, rgba(0, 229, 255, 0.10) 0%, transparent 65%),
-                      radial-gradient(ellipse 60% 50% at 85% 85%, rgba(167, 139, 250, 0.10) 0%, transparent 60%),
-                      radial-gradient(ellipse 50% 50% at 50% 50%, rgba(56, 189, 248, 0.05) 0%, transparent 70%),
-                      #12141a;
+  --body-bg-gradient: radial-gradient(ellipse 70% 60% at 20% 15%, rgba(0, 229, 255, 0.08) 0%, transparent 65%),
+                      radial-gradient(ellipse 60% 50% at 85% 85%, rgba(167, 139, 250, 0.08) 0%, transparent 60%),
+                      radial-gradient(ellipse 50% 50% at 50% 50%, rgba(56, 189, 248, 0.04) 0%, transparent 70%);
 }
 
 /* ---------- ADAPTIVE LIGHT THEME (Frosted Quartz Glass) ---------- */
 @media (prefers-color-scheme: light) {
   :root:not(.dark-theme) {
-    --bg-app:          #f4f6fa;
-    --bg-primary:      #f4f6fa;
-    --bg-secondary:    rgba(246, 248, 252, 0.82);
-    --bg-sidebar:      rgba(244, 246, 250, 0.80);
-    --bg-top-nav:      rgba(248, 250, 254, 0.75);
-    --bg-elevated:     #ffffff;
-    --bg-surface:      #eef1f6;
-    --bg-card:         rgba(255, 255, 255, 0.82);
+    --bg-app:          rgba(244, 246, 250, 0.75);
+    --bg-primary:      rgba(244, 246, 250, 0.75);
+    --bg-secondary:    rgba(246, 248, 252, 0.70);
+    --bg-sidebar:      rgba(238, 241, 246, 0.68);
+    --bg-top-nav:      rgba(248, 250, 254, 0.65);
+    --bg-elevated:     rgba(255, 255, 255, 0.85);
+    --bg-surface:      rgba(238, 241, 246, 0.80);
+    --bg-card:         rgba(255, 255, 255, 0.75);
     --bg-card-solid:   #ffffff;
-    --bg-card-hover:   rgba(255, 255, 255, 0.98);
-    --bg-input-dock:   rgba(255, 255, 255, 0.88);
+    --bg-card-hover:   rgba(255, 255, 255, 0.95);
+    --bg-input-dock:   rgba(255, 255, 255, 0.82);
     --bg-input:        rgba(0, 0, 0, 0.03);
     --bg-hover:        rgba(0, 0, 0, 0.04);
     --bg-active-pill:  rgba(0, 0, 0, 0.06);
@@ -119,25 +118,24 @@
     --shadow-card:     0 8px 24px -4px rgba(0, 0, 0, 0.06);
     --shadow-chip:     0 4px 14px rgba(0, 0, 0, 0.05);
 
-    --body-bg-gradient: radial-gradient(ellipse 65% 55% at 15% 10%, rgba(0, 180, 216, 0.06) 0%, transparent 60%),
-                        radial-gradient(ellipse 55% 45% at 85% 85%, rgba(139, 92, 246, 0.06) 0%, transparent 55%),
-                        radial-gradient(ellipse 45% 45% at 50% 50%, rgba(56, 189, 248, 0.03) 0%, transparent 65%),
-                        #f2f4f8;
+    --body-bg-gradient: radial-gradient(ellipse 65% 55% at 15% 10%, rgba(0, 180, 216, 0.05) 0%, transparent 60%),
+                        radial-gradient(ellipse 55% 45% at 85% 85%, rgba(139, 92, 246, 0.05) 0%, transparent 55%),
+                        radial-gradient(ellipse 45% 45% at 50% 50%, rgba(56, 189, 248, 0.02) 0%, transparent 65%);
   }
 }
 
 .light-theme {
-  --bg-app:          #f4f6fa;
-  --bg-primary:      #f4f6fa;
-  --bg-secondary:    rgba(246, 248, 252, 0.82);
-  --bg-sidebar:      rgba(244, 246, 250, 0.80);
-  --bg-top-nav:      rgba(248, 250, 254, 0.75);
-  --bg-elevated:     #ffffff;
-  --bg-surface:      #eef1f6;
-  --bg-card:         rgba(255, 255, 255, 0.82);
+  --bg-app:          rgba(244, 246, 250, 0.75);
+  --bg-primary:      rgba(244, 246, 250, 0.75);
+  --bg-secondary:    rgba(246, 248, 252, 0.70);
+  --bg-sidebar:      rgba(238, 241, 246, 0.68);
+  --bg-top-nav:      rgba(248, 250, 254, 0.65);
+  --bg-elevated:     rgba(255, 255, 255, 0.85);
+  --bg-surface:      rgba(238, 241, 246, 0.80);
+  --bg-card:         rgba(255, 255, 255, 0.75);
   --bg-card-solid:   #ffffff;
-  --bg-card-hover:   rgba(255, 255, 255, 0.98);
-  --bg-input-dock:   rgba(255, 255, 255, 0.88);
+  --bg-card-hover:   rgba(255, 255, 255, 0.95);
+  --bg-input-dock:   rgba(255, 255, 255, 0.82);
   --bg-input:        rgba(0, 0, 0, 0.03);
   --bg-hover:        rgba(0, 0, 0, 0.04);
   --bg-active-pill:  rgba(0, 0, 0, 0.06);
@@ -170,10 +168,9 @@
   --shadow-card:     0 8px 24px -4px rgba(0, 0, 0, 0.06);
   --shadow-chip:     0 4px 14px rgba(0, 0, 0, 0.05);
 
-  --body-bg-gradient: radial-gradient(ellipse 65% 55% at 15% 10%, rgba(0, 180, 216, 0.06) 0%, transparent 60%),
-                        radial-gradient(ellipse 55% 45% at 85% 85%, rgba(139, 92, 246, 0.06) 0%, transparent 55%),
-                        radial-gradient(ellipse 45% 45% at 50% 50%, rgba(56, 189, 248, 0.03) 0%, transparent 65%),
-                        #f2f4f8;
+  --body-bg-gradient: radial-gradient(ellipse 65% 55% at 15% 10%, rgba(0, 180, 216, 0.05) 0%, transparent 60%),
+                      radial-gradient(ellipse 55% 45% at 85% 85%, rgba(139, 92, 246, 0.05) 0%, transparent 55%),
+                      radial-gradient(ellipse 45% 45% at 50% 50%, rgba(56, 189, 248, 0.02) 0%, transparent 65%);
 }
 
 /* ---------- RESET & BASE ---------- */
@@ -189,8 +186,7 @@ html, body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: var(--body-bg-gradient);
-  background-color: var(--bg-app);
+  background: transparent !important;
   color: var(--text-primary);
   height: 100vh;
   overflow: hidden;
@@ -198,7 +194,7 @@ html, body {
   -webkit-user-select: none;
   line-height: 1.5;
   font-size: 14px;
-  transition: background 0.3s ease, color 0.3s ease;
+  transition: color 0.3s ease;
 }
 
 /* Selection */
@@ -241,6 +237,9 @@ html, body {
   width: 100vw;
   height: 100vh;
   position: relative;
+  background: var(--body-bg-gradient), var(--bg-app);
+  backdrop-filter: blur(40px) saturate(190%);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
 }
 
 /* ==========================================================================
@@ -1375,9 +1374,9 @@ html, body {
 }
 
 
-/* --- Dock Model Selector Pill (Antigravity Style) --- */
+/* --- Dock Model Selector Pill (Interactive Dropdown with Full-Pill Overlay) --- */
 .dock-model-pill {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   background: var(--bg-chip);
@@ -1389,6 +1388,7 @@ html, body {
   transition: all var(--transition-fast);
   cursor: pointer;
   position: relative;
+  user-select: none;
 }
 
 .dock-model-pill:hover {
@@ -1400,36 +1400,49 @@ html, body {
 .dock-model-icon {
   color: var(--accent-cyan);
   flex-shrink: 0;
+  pointer-events: none;
 }
 
-.dock-model-pill select {
-  appearance: none;
-  -webkit-appearance: none;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: inherit;
-  font-family: inherit;
+.dock-model-name {
   font-size: 12px;
   font-weight: 500;
-  cursor: pointer;
+  color: inherit;
   max-width: 220px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-right: 2px;
-}
-
-.dock-model-pill select option {
-  background-color: var(--bg-card-solid);
-  color: var(--text-primary);
-  padding: 6px 10px;
+  pointer-events: none;
 }
 
 .dock-select-chevron {
   color: var(--text-muted);
   flex-shrink: 0;
   pointer-events: none;
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.dock-model-pill:hover .dock-select-chevron {
+  color: var(--text-primary);
+}
+
+/* Invisible overlay select that covers 100% of the pill so clicking chevron or margins opens the menu */
+.dock-model-select-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 10;
+  -webkit-appearance: menulist-button;
+}
+
+.dock-model-select-overlay option {
+  background-color: var(--bg-card-solid);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  font-size: 13px;
 }
 
 .input-actions {

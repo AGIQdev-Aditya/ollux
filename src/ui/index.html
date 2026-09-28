@@ -159,12 +159,13 @@
                   <circle cx="12" cy="12" r="10"></circle>
                   <polygon points="12 8 8 12 12 16 12 8"></polygon>
                 </svg>
-                <select id="model-select">
-                  <option value="" disabled selected>Loading models...</option>
-                </select>
+                <span class="dock-model-name" id="dock-model-name">Loading models...</span>
                 <svg class="dock-select-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
+                <select id="model-select" class="dock-model-select-overlay" aria-label="Select Model">
+                  <option value="" disabled selected>Loading models...</option>
+                </select>
               </div>
 
               <button class="dock-btn toggle-tool" id="web-search-btn" title="Toggle DuckDuckGo Web Search">
