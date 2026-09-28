@@ -24,33 +24,32 @@
   --font-stack: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono:  "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
 
-  /* --- Default Dark Glass Theme --- */
-  --bg-app:          #0b0d12;
-  --bg-primary:      #0b0d12;
-  --bg-secondary:    rgba(16, 19, 27, 0.72);
-  --bg-sidebar:      rgba(13, 16, 24, 0.72);
-  --bg-top-nav:      rgba(11, 14, 21, 0.65);
-  --bg-elevated:     #151922;
-  --bg-surface:      #191f2b;
-  --bg-card:         rgba(20, 26, 38, 0.55);
-  --bg-card-solid:   #141924;
-  --bg-card-hover:   rgba(26, 34, 50, 0.85);
-  --bg-input-dock:   rgba(16, 21, 32, 0.76);
+  /* --- Antigravity Dark Glass Elevation Staircase --- */
+  --bg-app:          #13151b;
+  --bg-primary:      #13151b;
+  --bg-sidebar:      #0e1015;
+  --bg-top-nav:      rgba(15, 17, 23, 0.78);
+  --bg-elevated:     #1a1e28;
+  --bg-surface:      #1f2430;
+  --bg-card:         rgba(26, 31, 42, 0.65);
+  --bg-card-solid:   #1a1e28;
+  --bg-card-hover:   rgba(34, 41, 56, 0.85);
+  --bg-input-dock:   rgba(20, 24, 34, 0.85);
   --bg-input:        rgba(255, 255, 255, 0.04);
-  --bg-hover:        rgba(255, 255, 255, 0.05);
-  --bg-active-pill:  rgba(255, 255, 255, 0.08);
-  --bg-chip:         rgba(255, 255, 255, 0.04);
-  --bg-chip-hover:   rgba(255, 255, 255, 0.08);
+  --bg-hover:        rgba(255, 255, 255, 0.06);
+  --bg-active-pill:  rgba(255, 255, 255, 0.10);
+  --bg-chip:         rgba(255, 255, 255, 0.05);
+  --bg-chip-hover:   rgba(255, 255, 255, 0.10);
 
-  --border-subtle:   rgba(255, 255, 255, 0.06);
-  --border-color:    rgba(255, 255, 255, 0.08);
-  --border-mid:      rgba(255, 255, 255, 0.12);
-  --border-focus:    rgba(0, 229, 255, 0.45);
-  --border-dock:     rgba(255, 255, 255, 0.10);
+  --border-subtle:   rgba(255, 255, 255, 0.07);
+  --border-color:    rgba(255, 255, 255, 0.10);
+  --border-mid:      rgba(255, 255, 255, 0.16);
+  --border-focus:    rgba(0, 229, 255, 0.50);
+  --border-dock:     rgba(255, 255, 255, 0.12);
 
-  --text-primary:    #f0f3f8;
-  --text-secondary:  #8c97a8;
-  --text-muted:      #576273;
+  --text-primary:    #f2f5f9;
+  --text-secondary:  #94a0b2;
+  --text-muted:      #606c7e;
 
   --accent-cyan:     #00e5ff;
   --accent-cyan-rgb: 0, 229, 255;
@@ -64,14 +63,14 @@
 
   --glass-blur:      blur(28px) saturate(190%);
   --glass-specular:  inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  --shadow-dock:     0 20px 48px -10px rgba(0, 0, 0, 0.75);
-  --shadow-card:     0 10px 30px -6px rgba(0, 0, 0, 0.40);
-  --shadow-chip:     0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-dock:     0 20px 50px -10px rgba(0, 0, 0, 0.65), 0 0 1px rgba(255, 255, 255, 0.08);
+  --shadow-card:     0 10px 30px -6px rgba(0, 0, 0, 0.35);
+  --shadow-chip:     0 4px 16px rgba(0, 0, 0, 0.20);
 
-  --body-bg-gradient: radial-gradient(ellipse 65% 55% at 15% 10%, rgba(0, 229, 255, 0.07) 0%, transparent 60%),
-                      radial-gradient(ellipse 55% 45% at 85% 85%, rgba(196, 167, 250, 0.07) 0%, transparent 55%),
-                      radial-gradient(ellipse 45% 45% at 50% 50%, rgba(56, 189, 248, 0.03) 0%, transparent 65%),
-                      #090b0f;
+  --body-bg-gradient: radial-gradient(ellipse 70% 60% at 20% 15%, rgba(0, 229, 255, 0.10) 0%, transparent 65%),
+                      radial-gradient(ellipse 60% 50% at 85% 85%, rgba(167, 139, 250, 0.10) 0%, transparent 60%),
+                      radial-gradient(ellipse 50% 50% at 50% 50%, rgba(56, 189, 248, 0.05) 0%, transparent 70%),
+                      #12141a;
 }
 
 /* ---------- ADAPTIVE LIGHT THEME (Frosted Quartz Glass) ---------- */
@@ -282,15 +281,30 @@ html, body {
 }
 
 .brand-icon {
-  font-size: 20px;
-  background: rgba(0, 229, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.18);
-  border-radius: var(--radius-md);
   width: 36px;
   height: 36px;
+  border-radius: 9px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #12141a;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 229, 255, 0.25);
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.brand-icon:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 22px rgba(0, 229, 255, 0.4);
+}
+
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .brand-title {
@@ -1358,6 +1372,64 @@ html, body {
 
 #chat-textarea::placeholder {
   color: var(--text-muted);
+}
+
+
+/* --- Dock Model Selector Pill (Antigravity Style) --- */
+.dock-model-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-chip);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 5px 12px 5px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  position: relative;
+}
+
+.dock-model-pill:hover {
+  background: var(--bg-chip-hover);
+  color: var(--text-primary);
+  border-color: var(--border-mid);
+}
+
+.dock-model-icon {
+  color: var(--accent-cyan);
+  flex-shrink: 0;
+}
+
+.dock-model-pill select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 2px;
+}
+
+.dock-model-pill select option {
+  background-color: var(--bg-card-solid);
+  color: var(--text-primary);
+  padding: 6px 10px;
+}
+
+.dock-select-chevron {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 .input-actions {

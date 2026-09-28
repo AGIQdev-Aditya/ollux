@@ -140,21 +140,27 @@ class WaylandDnDHandler:
         if self._installed:
             return True
 
-        # Retrieve WebKit2.WebView instance
         # Method 1: PyWebView internal instances registry
         try:
             from webview.platforms.gtk import BrowserView
             instance = BrowserView.instances.get(self.pywebview_window.uid)
+            if not instance and BrowserView.instances:
+                instance = next(iter(BrowserView.instances.values()), None)
             if instance and hasattr(instance, "webview") and instance.webview is not None:
                 self.webview_widget = instance.webview
         except Exception as e:
             logger.debug(f"Could not retrieve webview via BrowserView.instances: {e}")
 
-        # Method 2: Traverse native GTK hierarchy from window.native
+        # Method 2: Fallback only if instance not found in registry
         if not self.webview_widget:
-            native_win = getattr(self.pywebview_window, "native", None)
-            if native_win:
-                self.webview_widget = find_webview_widget(native_win)
+            try:
+                from webview.platforms.gtk import BrowserView
+                for bv in BrowserView.instances.values():
+                    if hasattr(bv, "webview") and bv.webview is not None:
+                        self.webview_widget = bv.webview
+                        break
+            except Exception:
+                pass
 
         if not self.webview_widget:
             logger.error("Failed to locate WebKit2.WebView widget for Wayland DnD setup!")

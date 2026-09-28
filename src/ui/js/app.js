@@ -579,8 +579,14 @@
   function formatRelativeTime(dateStr) {
     if (!dateStr) return "";
     try {
-      const normalized = dateStr.endsWith("Z") ? dateStr : dateStr.replace(" ", "T") + "Z";
-      const date = new Date(normalized);
+      let cleaned = String(dateStr).trim();
+      if (!cleaned.includes("T")) {
+        cleaned = cleaned.replace(" ", "T");
+      }
+      if (!cleaned.includes("Z") && !cleaned.includes("+") && !/[0-9]-[0-9]{2}:/.test(cleaned.slice(-6))) {
+        cleaned += "Z";
+      }
+      const date = new Date(cleaned);
       if (isNaN(date.getTime())) return "";
       const diffMs = Math.max(0, Date.now() - date.getTime());
       const diffMins = Math.floor(diffMs / 60000);

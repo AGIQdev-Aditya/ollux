@@ -17,21 +17,11 @@
       <div class="sidebar-header">
         <div class="brand">
           <div class="brand-icon">
-            <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M10 4h5v7l4 4v11h-4l-2 2h-3l1-2H9v-9l2-2V4z" fill="url(#brand-grad)" />
-              <circle cx="12" cy="7.5" r="1.2" fill="#fff" />
-              <path d="M18 19l4-4 2 2-3 5h-3z" fill="url(#brand-grad)" opacity="0.8" />
-              <defs>
-                <linearGradient id="brand-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#00e5ff" />
-                  <stop offset="100%" stop-color="#a78bfa" />
-                </linearGradient>
-              </defs>
-            </svg>
+            <img src="img/logo_glyph.png" alt="ollux" class="brand-logo-img">
           </div>
           <div class="brand-info">
             <span class="brand-title">ollux</span>
-            <span class="brand-tag">NATIVE LINUX</span>
+            <span class="brand-tag">LOCAL AI • LINUX</span>
           </div>
         </div>
         <div class="status-indicator" id="daemon-status" title="Ollama Daemon Status">
@@ -90,15 +80,7 @@
         </div>
 
         <div class="nav-controls">
-          <!-- MODEL SELECTOR -->
-          <div class="control-group">
-            <label class="control-label">Model</label>
-            <div class="select-wrapper">
-              <select id="model-select">
-                <option value="" disabled selected>Loading models...</option>
-              </select>
-            </div>
-          </div>
+
 
           <!-- THINKING LEVEL SELECTOR -->
           <div class="control-group">
@@ -166,11 +148,24 @@
           <div class="input-actions">
             <div class="input-actions-left">
               <button class="dock-btn" id="attach-file-btn" title="Attach file (PDF, Image, Code, Text)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
               </button>
+
+              <div class="dock-model-pill" title="Active LLM Model">
+                <svg class="dock-model-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polygon points="12 8 8 12 12 16 12 8"></polygon>
+                </svg>
+                <select id="model-select">
+                  <option value="" disabled selected>Loading models...</option>
+                </select>
+                <svg class="dock-select-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
 
               <button class="dock-btn toggle-tool" id="web-search-btn" title="Toggle DuckDuckGo Web Search">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

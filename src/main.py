@@ -48,6 +48,8 @@ def main():
 
     ui_index_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "ui", "index.html"))
 
+    icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets", "ollux.png"))
+
     # Create Native WebKit2GTK Window
     window = webview.create_window(
         title="ollux",
@@ -56,7 +58,7 @@ def main():
         width=1120,
         height=760,
         min_size=(740, 520),
-        background_color="#0a0e14",
+        background_color="#12141a",
         text_select=True
     )
     api.set_window(window)
@@ -65,7 +67,11 @@ def main():
     install_gtk_dnd(window)
 
     # Start PyWebView with GTK backend (Wayland native)
-    webview.start(gui="gtk", debug=("--debug" in sys.argv))
+    webview.start(
+        gui="gtk",
+        debug=("--debug" in sys.argv),
+        icon=icon_path if os.path.exists(icon_path) else None
+    )
 
 
 if __name__ == "__main__":
