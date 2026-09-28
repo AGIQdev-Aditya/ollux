@@ -209,8 +209,16 @@
           <div class="pull-section">
             <label class="modal-label">Pull Model from Ollama Library</label>
             <div class="pull-input-group">
-              <input type="text" id="pull-model-name" placeholder="e.g. deepseek-r1:8b, mistral, gemma2:9b" autocomplete="off">
+              <input type="text" id="pull-model-name" placeholder="e.g. deepseek-r1:8b, llava:7b, llama3.2:3b" autocomplete="off">
               <button class="btn btn-primary" id="pull-model-btn">Pull Model</button>
+            </div>
+            <div class="popular-models-chips">
+              <span class="chips-label">Quick Suggestions:</span>
+              <button class="model-tag-chip" type="button" data-name="llama3.2:3b">⚡ llama3.2:3b</button>
+              <button class="model-tag-chip" type="button" data-name="deepseek-r1:8b">🧠 deepseek-r1:8b</button>
+              <button class="model-tag-chip" type="button" data-name="llava:7b">👁️ llava:7b (Vision)</button>
+              <button class="model-tag-chip" type="button" data-name="moondream:1.8b">👁️ moondream:1.8b (Vision)</button>
+              <button class="model-tag-chip" type="button" data-name="qwen2.5-coder:7b">💻 qwen2.5-coder:7b</button>
             </div>
             <div class="pull-progress-container" id="pull-progress-container" style="display: none;">
               <div class="progress-bar-bg">

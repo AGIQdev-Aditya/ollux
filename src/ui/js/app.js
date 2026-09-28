@@ -32,10 +32,24 @@
   const modelSelect = document.getElementById("model-select");
   const dockModelName = document.getElementById("dock-model-name");
 
+  function isVisionModel(name) {
+    const n = (name || "").toLowerCase();
+    return n.includes("vision") || n.includes("llava") || n.includes("moondream") || 
+           n.includes("bakllava") || n.includes("minicpm-v") || n.includes("-vl") || n.includes("_vl");
+  }
+
   function updateDockModelDisplay() {
     if (!dockModelName) return;
     const name = state.currentModel || (modelSelect ? modelSelect.value : "");
-    dockModelName.textContent = name || "Select Model";
+    if (!name) {
+      dockModelName.textContent = "Select Model";
+      return;
+    }
+    if (isVisionModel(name)) {
+      dockModelName.innerHTML = `<span style="margin-right: 3px;" title="Vision & Multimodal Model">👁️</span>${escapeHtml(name)}`;
+    } else {
+      dockModelName.textContent = name;
+    }
   }
   const thinkingSelector = document.getElementById("thinking-selector");
   const exportChatBtn = document.getElementById("export-chat-btn");
@@ -83,11 +97,39 @@
   const pullStatusLabel = document.getElementById("pull-status-label");
   const installedModelsTbody = document.getElementById("installed-models-tbody");
 
-  // --- Configure Marked with Synchronous Highlight.js & Inline Headers ---
+  // --- Robust Clipboard Helper (with Fallback for all WebKit/Linux environments) ---
+  function copyToClipboard(text) {
+    if (!text) return Promise.resolve();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    }
+    return fallbackCopy(text);
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.top = "-9999px";
+    ta.style.left = "-9999px";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand("copy");
+    } catch (err) {
+      console.error("Clipboard copy failed:", err);
+    }
+    document.body.removeChild(ta);
+    return Promise.resolve();
+  }
+
+  // --- Configure Marked with Synchronous Highlight.js & SVG Graphic Preview ---
   if (typeof marked !== "undefined") {
     const customRenderer = {
       code(token) {
-        const lang = token.lang || "";
+        const lang = (token.lang || "").toLowerCase();
         let highlighted = token.text;
         if (typeof hljs !== "undefined") {
           try {
@@ -103,13 +145,29 @@
           highlighted = escapeHtml(token.text);
         }
         const displayLang = lang || "code";
+
+        // Check if code contains SVG graphic for live offline visual rendering
+        const trimmed = (token.text || "").trim();
+        const isSvg = lang === "svg" || (trimmed.startsWith("<svg") && trimmed.includes("</svg>"));
+        const previewBtn = isSvg
+          ? `<button class="code-preview-btn" type="button" title="Toggle visual graphic preview">👁️ Preview</button>`
+          : "";
+        let previewPane = "";
+        if (isSvg && typeof DOMPurify !== "undefined") {
+          previewPane = `<div class="svg-preview-pane" style="display: none;">${DOMPurify.sanitize(trimmed, { USE_PROFILES: { svg: true } })}</div>`;
+        }
+
         return `
-          <div class="code-wrapper">
+          <div class="code-wrapper ${isSvg ? 'has-svg-preview' : ''}">
             <div class="code-header">
               <span class="code-lang">${displayLang}</span>
-              <button class="code-copy-btn" type="button">Copy</button>
+              <div class="code-header-actions">
+                ${previewBtn}
+                <button class="code-copy-btn" type="button">Copy</button>
+              </div>
             </div>
             <pre><code class="hljs ${lang ? 'language-' + lang : ''}">${highlighted}</code></pre>
+            ${previewPane}
           </div>
         `;
       }
@@ -117,18 +175,86 @@
     marked.use({ renderer: customRenderer });
   }
 
-  // Global Event Delegation for Copy Buttons (Zero Inline Scripting)
+  // Global Event Delegation for Copy Buttons & UI Actions
   document.addEventListener("click", (e) => {
-    const btn = e.target.closest(".code-copy-btn");
-    if (!btn) return;
-    const wrapper = btn.closest(".code-wrapper");
-    if (!wrapper) return;
-    const codeEl = wrapper.querySelector("code");
-    if (!codeEl) return;
-    navigator.clipboard.writeText(codeEl.innerText).then(() => {
-      btn.textContent = "Copied!";
-      setTimeout(() => (btn.textContent = "Copy"), 2000);
-    });
+    // 1. Code Block Copy
+    const codeBtn = e.target.closest(".code-copy-btn");
+    if (codeBtn) {
+      const wrapper = codeBtn.closest(".code-wrapper");
+      if (wrapper) {
+        const codeEl = wrapper.querySelector("code");
+        if (codeEl) {
+          copyToClipboard(codeEl.innerText).then(() => {
+            codeBtn.textContent = "Copied!";
+            setTimeout(() => (codeBtn.textContent = "Copy"), 2000);
+          });
+        }
+      }
+      return;
+    }
+
+    // 2. SVG Graphic Preview Toggle
+    const prevBtn = e.target.closest(".code-preview-btn");
+    if (prevBtn) {
+      const wrapper = prevBtn.closest(".code-wrapper");
+      if (wrapper) {
+        const pane = wrapper.querySelector(".svg-preview-pane");
+        const pre = wrapper.querySelector("pre");
+        if (pane && pre) {
+          const isShowing = pane.style.display !== "none";
+          pane.style.display = isShowing ? "none" : "flex";
+          pre.style.display = isShowing ? "block" : "none";
+          prevBtn.textContent = isShowing ? "👁️ Preview" : "💻 Code";
+        }
+      }
+      return;
+    }
+
+    // 3. Full Assistant Response Copy
+    const copyMsgBtn = e.target.closest(".copy-response-btn");
+    if (copyMsgBtn) {
+      const bubble = copyMsgBtn.closest(".assistant-bubble");
+      if (bubble) {
+        let rawText = bubble._rawContent;
+        if (!rawText) {
+          const md = bubble.querySelector(".markdown-body");
+          rawText = md ? md.innerText : "";
+        }
+        if (rawText) {
+          copyToClipboard(rawText).then(() => {
+            copyMsgBtn.classList.add("copied");
+            const span = copyMsgBtn.querySelector("span");
+            const copyIcon = copyMsgBtn.querySelector(".copy-icon");
+            const checkIcon = copyMsgBtn.querySelector(".check-icon");
+            if (span) span.textContent = "Copied!";
+            if (copyIcon && checkIcon) {
+              copyIcon.style.display = "none";
+              checkIcon.style.display = "inline-block";
+            }
+            setTimeout(() => {
+              copyMsgBtn.classList.remove("copied");
+              if (span) span.textContent = "Copy";
+              if (copyIcon && checkIcon) {
+                copyIcon.style.display = "inline-block";
+                checkIcon.style.display = "none";
+              }
+            }, 2000);
+          });
+        }
+      }
+      return;
+    }
+
+    // 4. Model Suggestion Tag Click
+    const modelTag = e.target.closest(".model-tag-chip");
+    if (modelTag) {
+      const pullInput = document.getElementById("pull-model-name");
+      if (pullInput && modelTag.dataset.name) {
+        pullInput.value = modelTag.dataset.name;
+        pullInput.focus();
+      }
+      return;
+    }
   });
 
   // --- Initialize when PyWebView is ready ---
@@ -561,14 +687,16 @@
         opt.value = m.name;
         let badge = "";
         const nameLower = m.name.toLowerCase();
-        if (nameLower.includes("qwen3.8") || nameLower.includes("vision")) {
-          badge = " • 👁️ Vision & Web";
-        } else if (nameLower.includes("nemotron") || nameLower.includes("qwen2.5") || nameLower.includes("deepseek")) {
-          badge = " • 🧠 Reasoning & Web";
-        } else if (nameLower.includes("llama2")) {
+        if (isVisionModel(nameLower)) {
+          badge = " • 👁️ Vision & Multimodal";
+        } else if (nameLower.includes("deepseek") || nameLower.includes("r1") || nameLower.includes("nemotron") || nameLower.includes("qwq")) {
+          badge = " • 🧠 Deep Reasoning";
+        } else if (nameLower.includes("coder") || nameLower.includes("dev")) {
+          badge = " • 💻 Code Specialist";
+        } else if (nameLower.includes("llama2") || nameLower.includes("vicuna")) {
           badge = " • ⚡ Fast Local (Legacy)";
         } else {
-          badge = " • 🌐 Web Ready";
+          badge = " • 🌐 General & Web";
         }
         opt.textContent = `${m.name} (${m.size})${badge}`;
         modelSelect.appendChild(opt);
@@ -885,20 +1013,27 @@
       bubble.className = "user-bubble";
       bubble.textContent = msg.content;
 
-      // Render attachment badges if any
+      // Render attachment badges & previews if any
       if (msg.attachments && msg.attachments.length > 0) {
         const attContainer = document.createElement("div");
-        attContainer.style.display = "flex";
-        attContainer.style.gap = "6px";
-        attContainer.style.flexWrap = "wrap";
-        attContainer.style.marginBottom = "8px";
+        attContainer.className = "message-attachments-preview";
 
         msg.attachments.forEach((att) => {
-          const chip = document.createElement("div");
-          chip.className = "attachment-chip";
-          chip.style.background = "rgba(255,255,255,0.1)";
-          chip.innerHTML = `${att.type === "image" ? "🖼️" : att.type === "pdf" ? "📕" : "📄"} <span>${att.name}</span>`;
-          attContainer.appendChild(chip);
+          if (att.type === "image" && att.base64) {
+            const imgWrap = document.createElement("div");
+            imgWrap.className = "message-image-attachment";
+            imgWrap.innerHTML = `
+              <img src="data:image/png;base64,${att.base64}" alt="${escapeHtml(att.name)}" title="${escapeHtml(att.name)}" />
+              <span class="image-attachment-label">🖼️ ${escapeHtml(att.name)}</span>
+            `;
+            attContainer.appendChild(imgWrap);
+          } else {
+            const chip = document.createElement("div");
+            chip.className = "attachment-chip";
+            chip.style.background = "rgba(255,255,255,0.1)";
+            chip.innerHTML = `${att.type === "pdf" ? "📕" : "📄"} <span>${escapeHtml(att.name)}</span>`;
+            attContainer.appendChild(chip);
+          }
         });
         bubble.prepend(attContainer);
       }
@@ -907,6 +1042,7 @@
     } else {
       const bubble = document.createElement("div");
       bubble.className = "assistant-bubble";
+      bubble._rawContent = msg.content;
 
       // Thinking Accordion
       if (msg.thinking_content) {
@@ -928,23 +1064,43 @@
       contentDiv.innerHTML = renderMarkdown(msg.content);
       bubble.appendChild(contentDiv);
 
-      // Metrics Footer
+      // Message Footer Bar (Metrics & Copy Action)
+      const footerBar = document.createElement("div");
+      footerBar.className = "message-footer-bar";
+
+      const metricsContainer = document.createElement("div");
+      metricsContainer.className = "metrics-footer";
       if (msg.metrics && msg.metrics.eval_count) {
         const m = msg.metrics;
-        const footer = document.createElement("div");
-        footer.className = "metrics-footer";
         const ctxHtml = m.context_length && m.total_tokens
           ? `<span>•</span><span class="metric-badge context-badge" title="Context: ${m.prompt_eval_count || 0} prompt + ${m.eval_count} generated tokens">🧠 ${m.total_tokens.toLocaleString()} / ${m.context_length.toLocaleString()} tokens (${m.context_used_pct}%)</span>`
           : `<span>•</span><span class="metric-badge">${m.eval_count} tokens</span>`;
 
-        footer.innerHTML = `
+        metricsContainer.innerHTML = `
           <span class="metric-badge speed">⚡ ${m.tokens_per_second} tokens/s</span>
           <span>•</span>
           <span class="metric-badge">${m.eval_count} tokens (${m.eval_duration_secs}s)</span>
           ${ctxHtml}
         `;
-        bubble.appendChild(footer);
       }
+      footerBar.appendChild(metricsContainer);
+
+      const actionsDiv = document.createElement("div");
+      actionsDiv.className = "message-actions";
+      actionsDiv.innerHTML = `
+        <button class="msg-action-btn copy-response-btn" type="button" title="Copy full response">
+          <svg class="copy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <svg class="check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: none;">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>Copy</span>
+        </button>
+      `;
+      footerBar.appendChild(actionsDiv);
+      bubble.appendChild(footerBar);
 
       row.appendChild(bubble);
     }
@@ -1065,11 +1221,17 @@
     attachmentTray.innerHTML = "";
     state.stagedAttachments.forEach((att, idx) => {
       const chip = document.createElement("div");
-      chip.className = "attachment-chip";
-      const icon = att.type === "image" ? "🖼️" : att.type === "pdf" ? "📕" : "📄";
+      chip.className = "attachment-chip" + (att.type === "image" ? " image-chip" : "");
+      let thumbHtml = "";
+      if (att.type === "image" && att.base64) {
+        thumbHtml = `<img src="data:image/png;base64,${att.base64}" class="tray-thumb" alt="thumbnail" />`;
+      } else {
+        const icon = att.type === "pdf" ? "📕" : "📄";
+        thumbHtml = `<span>${icon}</span>`;
+      }
       chip.innerHTML = `
-        <span>${icon}</span>
-        <span>${att.name}</span>
+        ${thumbHtml}
+        <span class="att-name">${escapeHtml(att.name)}</span>
         <button class="remove-att-btn" title="Remove">&times;</button>
       `;
       chip.querySelector(".remove-att-btn").addEventListener("click", () => removeAttachmentChip(idx));
@@ -1265,6 +1427,7 @@
 
     // Remove cursor cleanly
     state.activeAssistantBubble.contentDiv.innerHTML = renderMarkdown(state.accumulatedContent, false);
+    state.activeAssistantBubble.bubble._rawContent = state.accumulatedContent;
 
     // Update thinking summary title with duration
     if (state.accumulatedThinking) {
@@ -1277,28 +1440,46 @@
       }
     }
 
-    // Append performance metrics
+    // Message Footer Bar (Metrics & Copy Action)
+    const footerBar = document.createElement("div");
+    footerBar.className = "message-footer-bar";
+
+    const metricsContainer = document.createElement("div");
+    metricsContainer.className = "metrics-footer";
+
     if (metrics && metrics.stopped) {
-      const footer = document.createElement("div");
-      footer.className = "metrics-footer";
-      footer.innerHTML = `<span class="metric-badge" style="color: var(--accent-amber);">⏹ Stopped</span>`;
-      state.activeAssistantBubble.row.querySelector(".assistant-bubble").appendChild(footer);
+      metricsContainer.innerHTML = `<span class="metric-badge" style="color: var(--accent-amber);">⏹ Stopped</span>`;
     } else if (metrics && metrics.eval_count) {
-      const footer = document.createElement("div");
-      footer.className = "metrics-footer";
       const ctxHtml = metrics.context_length && metrics.total_tokens
         ? `<span>•</span><span class="metric-badge context-badge" title="Context: ${metrics.prompt_eval_count || 0} prompt + ${metrics.eval_count} generated tokens">🧠 ${metrics.total_tokens.toLocaleString()} / ${metrics.context_length.toLocaleString()} tokens (${metrics.context_used_pct}%)</span>`
         : `<span>•</span><span class="metric-badge">${metrics.eval_count} tokens</span>`;
 
-      footer.innerHTML = `
+      metricsContainer.innerHTML = `
         <span class="metric-badge speed">⚡ ${metrics.tokens_per_second} tokens/s</span>
         <span>•</span>
         <span class="metric-badge">${metrics.eval_count} tokens (${metrics.eval_duration_secs}s)</span>
         ${ctxHtml}
       `;
-      state.activeAssistantBubble.row.querySelector(".assistant-bubble").appendChild(footer);
       updateDockTokenInfo(metrics);
     }
+    footerBar.appendChild(metricsContainer);
+
+    const actionsDiv = document.createElement("div");
+    actionsDiv.className = "message-actions";
+    actionsDiv.innerHTML = `
+      <button class="msg-action-btn copy-response-btn" type="button" title="Copy full response">
+        <svg class="copy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <svg class="check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: none;">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Copy</span>
+      </button>
+    `;
+    footerBar.appendChild(actionsDiv);
+    state.activeAssistantBubble.bubble.appendChild(footerBar);
 
     state.isGenerating = false;
     updateSendButtonState(false);

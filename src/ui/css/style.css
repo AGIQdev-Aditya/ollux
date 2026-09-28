@@ -1163,6 +1163,31 @@ html, body {
   text-transform: lowercase;
 }
 
+.code-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.code-preview-btn {
+  background: rgba(0, 229, 255, 0.10);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  color: var(--accent-cyan);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-stack);
+  transition: all var(--transition-fast);
+}
+
+.code-preview-btn:hover {
+  background: rgba(0, 229, 255, 0.20);
+  border-color: var(--accent-cyan);
+  color: #fff;
+}
+
 .code-copy-btn {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-subtle);
@@ -1179,6 +1204,23 @@ html, body {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.10);
   border-color: var(--border-mid);
+}
+
+.svg-preview-pane {
+  padding: 24px;
+  background: rgba(8, 10, 16, 0.65);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  min-height: 120px;
+}
+
+.svg-preview-pane svg {
+  max-width: 100%;
+  height: auto;
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.4));
 }
 
 .code-wrapper pre {
@@ -1227,18 +1269,70 @@ html, body {
 }
 
 /* ==========================================================================
-   PERFORMANCE METRICS — Sleek Pills
+   MESSAGE FOOTER BAR & ACTIONS (Copy Full Response & Metrics)
    ========================================================================== */
-.metrics-footer {
-  margin-top: 10px;
+.message-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
   padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.metrics-footer {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 11px;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.message-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.msg-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.msg-action-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
+}
+
+.msg-action-btn:active {
+  transform: translateY(0);
+}
+
+.msg-action-btn.copied {
+  background: rgba(16, 185, 129, 0.14) !important;
+  border-color: rgba(16, 185, 129, 0.40) !important;
+  color: var(--accent-emerald) !important;
+}
+
+.msg-action-btn svg {
+  flex-shrink: 0;
 }
 
 .metric-badge {
@@ -1315,6 +1409,49 @@ html, body {
 
 .attachment-chip .remove-att-btn:hover {
   color: var(--accent-red);
+}
+
+.tray-thumb {
+  width: 18px;
+  height: 18px;
+  object-fit: cover;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* --- Message Attachments Preview (Vision Images & Docs) --- */
+.message-attachments-preview {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.message-image-attachment {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.30);
+  max-width: 240px;
+  display: flex;
+  flex-direction: column;
+}
+
+.message-image-attachment img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.image-attachment-label {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* --- Input Box (Floating Dark Glass Island) --- */
@@ -1732,6 +1869,41 @@ html, body {
 
 .pull-input-group input::placeholder {
   color: var(--text-muted);
+}
+
+/* --- Popular Models Quick Suggestions --- */
+.popular-models-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.chips-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-right: 2px;
+}
+
+.model-tag-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.model-tag-chip:hover {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: rgba(0, 229, 255, 0.35);
+  color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
 .pull-progress-container {
