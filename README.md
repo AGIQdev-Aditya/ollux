@@ -29,12 +29,20 @@ If you find `ollux` helpful, please consider **starring the repository ⭐** and
 
 Running local LLMs on Linux traditionally forces you into difficult compromises:
 
-| Solution | Disk Space | RAM Footprint | Startup Time | Linux Native? |
-| :--- | :--- | :--- | :--- | :--- |
-| **Open WebUI (Docker)** | ~3.2 GB | ~1,200 – 1,800 MB | 8 – 15 seconds | ❌ Web browser inside container |
-| **Electron Apps (Jan / LM Studio)** | ~450 – 800 MB | ~550 – 900 MB | 2.5 – 5.0 seconds | ❌ Chromium bundle wrapper |
-| **Terminal CLI (`ollama run`)** | ~0 MB | Minimal | Instant | ⚠️ No vision, no attachments, no history UI |
-| **`ollux` (Native GTK)** | **< 10 MB** | **~160 – 220 MB total** | **< 0.4 seconds** | **✅ 100% Native Linux WebKit2GTK** |
+| Solution | Disk Space | RAM Footprint | Startup Time | Visual Fidelity & Charts | Linux Native? |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Open WebUI (Docker)** | ~3.2 GB | ~1,200 – 1,800 MB | 8 – 15 seconds | ✅ Full Web UI | ❌ Web browser inside container |
+| **Electron Apps (Jan / LM Studio)** | ~450 – 800 MB | ~550 – 900 MB | 2.5 – 5.0 seconds | ✅ Full UI | ❌ Heavy Chromium bundle wrapper |
+| **Terminal CLI (`ollama run`)** | ~0 MB | Minimal | Instant | ❌ **No charts, no SVGs, raw XML, flooded screen** | ⚠️ Text-only terminal shell |
+| **`ollux` (Native GTK)** | **< 10 MB** | **~160 – 220 MB total** | **< 0.4 seconds** | **✅ Live SVGs, charts, tables, vision, 1-click copy** | **✅ 100% Native Linux WebKit2GTK** |
+
+### 📊 Why Not Just Use the Terminal (`ollama run`)?
+While the CLI is great for quick terminal checks, real AI workflows quickly break down in raw text:
+1. **Visual Diagrams & Charts**: Modern coding and reasoning models generate flowcharts, architecture diagrams, and vector art. In a terminal, this prints as hundreds of lines of raw, unreadable `<svg>` markup. `ollux` renders them live as interactive graphics with an instant toggle (`👁️ Preview` / `💻 Code`).
+2. **Chain-of-Thought Screen Flooding**: Models like DeepSeek-R1 output extensive `<think>` steps. In a terminal, your entire screen and scrollback buffer get buried under thousands of reasoning tokens. `ollux` automatically folds them into a clean, collapsible drawer with live elapsed timing (`🧠 Reasoned for 3.4s`).
+3. **Formatted Tables & Math**: ASCII tables in terminal windows wrap and break on resizing. `ollux` renders crystal-clear Markdown tables and formatted formulas.
+4. **Code Extraction**: Copying code from a terminal often captures line wraps, shell prompts, and broken indentation. `ollux` provides syntax-highlighted code blocks with 1-click copy buttons that preserve exact formatting.
+5. **Vision & Multimodal Attachments**: Drag-and-dropping PDFs, screenshots, and photos directly into your model with visual thumbnails is impossible in a standard terminal.
 
 `ollux` connects directly to your local Ollama daemon (`http://localhost:11434`) without extra services or telemetry.
 
