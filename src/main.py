@@ -5,6 +5,10 @@ Main entry point and window manager.
 
 import os
 import sys
+import signal
+
+# Ensure clean termination on SIGINT (Ctrl+C)
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 # Critical stability fix for WebKitWebProcess on Linux hybrid Intel/NVIDIA Wayland systems
 # Disables DMABUF renderer sharing that causes SIGABRT on NVIDIA proprietary drivers
@@ -104,6 +108,16 @@ def main():
 
     # Attach Native Wayland GTK Drag-and-Drop Handler
     install_gtk_dnd(window)
+
+    def _on_closed():
+        """Ensure all background threads and processes exit cleanly on window close."""
+        try:
+            api.stop_generation()
+        except Exception:
+            pass
+        os._exit(0)
+
+    window.events.closed += _on_closed
 
     # Start PyWebView with GTK backend (Wayland native)
     webview.start(

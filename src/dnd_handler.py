@@ -136,9 +136,10 @@ class WaylandDnDHandler:
         """
         Locate WebKit2.WebView and install GTK drag destination and signals.
         Must execute on the GTK main loop thread.
+        Returns False so GLib.idle_add removes the callback after single execution.
         """
         if self._installed:
-            return True
+            return False
 
         # Method 1: PyWebView internal instances registry
         try:
@@ -187,7 +188,7 @@ class WaylandDnDHandler:
 
         self._installed = True
         logger.info("Native Wayland GTK3 drag-and-drop handler successfully installed.")
-        return True
+        return False
 
     def _eval_js_safe(self, script: str):
         """
@@ -300,7 +301,10 @@ def install_gtk_dnd(
     handler = WaylandDnDHandler(window, on_files_dropped=on_files_dropped)
 
     def _on_shown():
-        GLib.idle_add(handler.setup)
+        def _setup_idle():
+            handler.setup()
+            return False  # GLib.SOURCE_REMOVE: do not keep running in idle loop!
+        GLib.idle_add(_setup_idle)
 
     window.events.shown += _on_shown
     return handler
